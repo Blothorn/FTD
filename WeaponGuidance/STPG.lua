@@ -241,7 +241,7 @@ function Update(I)
             end
 
             local mSpeed = math.max(Length(mInfo.Velocity), ws.Speed)
-            tPos = PredictTarget(I, target, mInfo.Position, ws.Speed, 0, ws.SecantInterval, ws.MinumumConvergenceSpeed)
+            tPos = PredictTarget(I, target, mInfo.Position, ws.Speed, 0, ws.SecantInterval, ws.MinimumConvergenceSpeed)
             I:SetLuaControlledMissileAimPoint(trans, mi, tPos.x, math.min(ws.MaximumAltitude, math.max(tPos.y, ws.MinimumAltitude)),tPos.z)
           end
         end
