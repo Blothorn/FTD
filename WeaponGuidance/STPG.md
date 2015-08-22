@@ -27,8 +27,8 @@ To account for the target prioritization card's ambivalence to target direction,
 + `Group`: Weapon group (0-5).
 + `Type`: 0 for lasers, 1 for cannon, 2 for missiles. For turreted weapons, use the weapon type on the turret.
 + `TargetList`: The virtual mainframe that will be used for targetting.
-+ `MinimumAltitude`: The minimum altitude of the aimpoint. Invalid aimpoints will be projected up to this altitude if it seems within the vehicle's bounding box.
-+ `MaximumAltitude`: The maximum altitude of the aimpoint. Invalid aimpoints will be projected down to this altitude if it seems within the vehicle's bounding box.
++ `MinimumAltitude`: The minimum altitude of the aimpoint. Invalid aimpoints will be projected up to this altitude.
++ `MaximumAltitude`: The maximum altitude of the aimpoint. Invalid aimpoints will be projected down to this altitude.
 + `MinimumRange`: The minimum range to the target. Useful primarily for off-axis missiles.
 + `MaximumRange`: Maximum range to the intercept point (calculated using speed/delay TTT).
 + `FiringAngle`: Maximum deviation at which to fire. Future plans to allow for a vector3 to better accomodate missiles on turrets with no/limited elevation.

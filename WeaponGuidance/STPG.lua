@@ -212,8 +212,8 @@ function Update(I)
         vector = vector / Length(vector)
         I:AimWeaponInDirection(i, vector.x, vector.y, vector.z, w.WeaponSlot)
 
-        local angle = I:Maths_AngleBetweenVectors(I:GetConstructForwardVector(), vector)
-        if Length(w.GlobalPosition - tPos) < ws.MaximumRange and angle < 180 then
+        local angle = I:Maths_AngleBetweenVectors(w.CurrentDirection, vector)
+        if Length(w.GlobalPosition - tPos) < ws.MaximumRange and angle < ws.FiringAngle then
           I:FireWeapon(i, w.WeaponSlot)
         end
       end
