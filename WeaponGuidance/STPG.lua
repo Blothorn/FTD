@@ -181,9 +181,9 @@ function FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
 end
 
 function PredictTarget(I, target, mPos, mSpeed, delay, Interval, minConv)
-   tPos = target.Position[Targets[tIndex].Index]
+   tPos = target.Position[target.Index]
    tVel = target.Velocity
-   aPos = target.AimPoint[Targets[tIndex].Index]
+   aPos = target.AimPoint[target.Index]
    -- Find an initial ttt to find the secant width
    local ttt = FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
    -- Find the secant velocity
