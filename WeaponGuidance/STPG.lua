@@ -112,18 +112,22 @@ function UpdateTargets(I)
   for tInd = 0, I:GetNumberOfTargets(ami) - 1 do
     local t = I:GetTargetInfo(ami, tInd)
     if Targets[t.Id] then
-      local tar = Targets[t.Id]
-
-      if tar.Index <= TargetBufferSize then
-        tar.Index = tar.Index + 1
+      if not t.Protected then
+        Targets[t.Id] = nil
       else
-        tar.Index = 1
-        tar.Wrapped = 1
+        local tar = Targets[t.Id]
+        
+        if tar.Index <= TargetBufferSize then
+          tar.Index = tar.Index + 1
+        else
+          tar.Index = 1
+          tar.Wrapped = 1
+        end
+        
+        tar.Velocity = t.Velocity
+        tar.Position[tar.Index] = t.Position
+        tar.AimPoint[tar.Index] = t.AimPointPosition
       end
-
-      tar.Velocity = t.Velocity
-      tar.Position[tar.Index] = t.Position
-      tar.AimPoint[tar.Index] = t.AimPointPosition
     end
   end
 end
@@ -228,21 +232,23 @@ function Update(I)
         if I:GetLuaTransceiverInfo(trans).Valid then
           for mi = 0, I:GetLuaControlledMissileCount(trans) - 1 do
             local mInfo = I:GetLuaControlledMissileInfo(trans, mi)
-            if Missiles[mInfo.Id] == nil then
+            if Missiles[mInfo.Id] == nil or Targets[Missiles[mInfo.Id]] == nil then
               Missiles[mInfo.Id] = { Target = TargetLists[ws.TargetList].PresentTarget }
             end
 
             Missiles[mInfo.Id].Flag = flag
             local target = Targets[Missiles[mInfo.Id].Target]
-            target.Flag = flag
-
-            if ws.ProxRadius and Length(target.AimPoint[target.Index] - mInfo.Position) < ws.ProxRadius then
-              I:DetonateLuaControlledMissile(trans,m)
+            if target then
+              target.Flag = flag
+              
+              if ws.ProxRadius and Length(target.AimPoint[target.Index] - mInfo.Position) < ws.ProxRadius then
+                I:DetonateLuaControlledMissile(trans,m)
+              end
+              
+              local mSpeed = math.max(Length(mInfo.Velocity), ws.Speed)
+              tPos = PredictTarget(I, target, mInfo.Position, ws.Speed, 0, ws.SecantInterval, ws.MinimumConvergenceSpeed)
+              I:SetLuaControlledMissileAimPoint(trans, mi, tPos.x, math.min(ws.MaximumAltitude, math.max(tPos.y, ws.MinimumAltitude)),tPos.z)
             end
-
-            local mSpeed = math.max(Length(mInfo.Velocity), ws.Speed)
-            tPos = PredictTarget(I, target, mInfo.Position, ws.Speed, 0, ws.SecantInterval, ws.MinimumConvergenceSpeed)
-            I:SetLuaControlledMissileAimPoint(trans, mi, tPos.x, math.min(ws.MaximumAltitude, math.max(tPos.y, ws.MinimumAltitude)),tPos.z)
           end
         end
       end
