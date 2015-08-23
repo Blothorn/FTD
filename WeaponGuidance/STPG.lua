@@ -8,7 +8,7 @@ TargetLists = {
   AA = {
     MainframeIndex = 0,
       MinimumSpeed = 0,
-      MaximumSpeed = 250,
+      MaximumSpeed = 350,
       MinimumAltitude = -5,
       MaximumAltitude = 99999,
     MaximumRange = 1000,
@@ -37,7 +37,7 @@ WeaponSystems[1] = {
 
 flag = 0
 
-DefaultSecantInterval = function(ttt) return math.ceil(40*ttt/2) end
+DefaultSecantInterval = function(ttt) return math.min(math.ceil(40*ttt/2), 100) end
 
 -- Target buffers
 Targets = {}
