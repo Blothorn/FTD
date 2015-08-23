@@ -29,6 +29,8 @@ To account for the target prioritization card's ambivalence to target direction,
 ### Basic settings
 + `Type`: 0 for lasers, 1 for cannon, 2 for missiles. For turreted weapons, use the weapon type on the turret.
 + `TargetList`: The virtual mainframe that will be used for targetting.
++ `Stagger`: Minimum time between consecutive firings. Applies per controller (and is thus completely seperate from stagger among the missiles attached to a controller). Defaults to none.
++ `SecantInterval` (optional): `Time -> Int`. The number of ticks over which to average velocity as a function of the time to target. This should usually converge to (0,0); higher values provide more smoothing but are slower to react to changes in direction. Defaults to a sensible value if nil (`math.ceil(40*ttt)`).
 
 ### Firing restrictions.
 Note that target list restrictions determine whether a weapon system attempts to engage a target, and the weapon system settings whether it actually fires. This allows actions such as pre-aiming weapons at out-of-range (but closing) targets.
@@ -45,7 +47,6 @@ These help the target prediction AI.
 + `LaunchElevation`: Total elevation change during launch (for dropped missiles with a delay, or missiles with angled ejection).
 + `MinimumConvergenceSpeed`: A minimum convergence speed when calculating intercept points. Useful for getting missiles to follow a fast target in the hope that he will turn back in range (with higher values sticking closer to a pursuit course), but too high a value will lead to undercorrection in otherwise valid intercept solutions.
 + `ProxRadius`: The distance from the target at which a missile will be manually detonated.
-+ `SecantInterval` (optional): `Time -> Int`. The number of ticks over which to average velocity as a function of the time to target. This should usually converge to (0,0); higher values provide more smoothing but are slower to react to changes in direction. Defaults to a sensible value if nil (`math.ceil(40*ttt)`).
 + `TransceiverIndices`: The indices of the attached Lua transceivers. These will be wrong if low indices are damaged, but until `GetLuaTransceiverInfo` is fixed I cannot do anything about that. nil controls none; `'all'` controls all extant transceivers.
 
 # Implementation notes

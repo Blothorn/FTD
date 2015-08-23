@@ -24,6 +24,7 @@ WeaponSystems = {}
 WeaponSystems[1] = {
     Type = 2,
     TargetList = 'AA',
+    Stagger = 0.5,
     MaximumAltitude = 99999,
     MinimumAltitude = -3,
     MaximumRange = 800,
@@ -214,8 +215,13 @@ function Update(I)
         I:AimWeaponInDirection(i, vector.x, vector.y, vector.z, w.WeaponSlot)
 
         local angle = I:Maths_AngleBetweenVectors(w.CurrentDirection, vector)
-        if Length(w.GlobalPosition - tPos) < ws.MaximumRange and angle < ws.FiringAngle then
-          I:FireWeapon(i, w.WeaponSlot)
+        local isDelayed = (ws.Stagger) and I:GetTime() < (ws.LastFired or 0) + ws.Stagger
+        if Length(w.GlobalPosition - tPos) < ws.MaximumRange
+           and angle < ws.FiringAngle and not isDelayed then
+          local fired = I:FireWeapon(i, w.WeaponSlot)
+          if fired then
+            ws.LastFired = I:GetTime()
+          end
         end
       end
     end
