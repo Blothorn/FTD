@@ -166,19 +166,13 @@ function FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
    local ttt = 0
 
    if det < 0 then
-      -- No converging path
-      I:Log('Negative determinant')
-      ttt = distance / minConv
-   else
+   if det > 0 then
       local root1 = math.min((-b + det)/(2*a), (-b - det)/(2*a))
       local root2 = math.max((-b + det)/(2*a), (-b - det)/(2*a))
       if root1 > 0 then
          ttt = root1
       elseif root2 > 0 then
          ttt = root2
-      else
-         I:Log('Negative ttt')
-         ttt = distance / minConv
       end
    end
    return ttt
@@ -194,7 +188,7 @@ function PredictTarget(I, target, mPos, mSpeed, delay, Interval, minConv)
    local secantVelocity = PredictVelocity(I, target, aPos, Interval(ttt+delay))
 
    -- Use this to refine the TTT guess
-   ttt = FindConvergence(I, tPos, secantVelocity, mPos, mSpeed, minConv)
+   ttt = FindConvergence(I, tPos, secantVelocity, mPos, mSpeed, delay, minConv)
    secantVelocity = PredictVelocity(I, target, aPos, Interval(ttt+delay))
    return aPos + secantVelocity * (ttt+delay)
 end
