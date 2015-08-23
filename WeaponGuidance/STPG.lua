@@ -224,7 +224,7 @@ function Update(I)
       local indices = {}
       if ws.TransceiverIndices == 'all' then
         indices = {}
-        for i = 0, I:GetLuaTransceiverCount - 1 do
+        for i = 0, I:GetLuaTransceiverCount() - 1 do
           table.insert(indices, i)
         end
       else
