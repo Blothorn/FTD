@@ -150,14 +150,14 @@ end
 
 function FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
    -- Calculates a time at which the missiles potential sphere intersects the target's track
-   local relativePosition = tPos - mPos
+   local relativePosition = mPos - tPos
    local distance = Length(relativePosition)
    local targetAngle = I:Maths_AngleBetweenVectors(relativePosition, tVel)
    local targetSpeed = Length(tVel)
 
    -- Find time to earliest possible convergence point
    local a = targetSpeed^2 - mSpeed^2
-   local b = 2 * targetSpeed * mSpeed * math.cos(math.rad(targetAngle))
+   local b = -2 * targetSpeed * distance * math.cos(math.rad(targetAngle))
    local c = distance^2
    local det = math.sqrt(b^2-4*a*c)
    local ttt = distance / minConv
