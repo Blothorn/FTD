@@ -3,6 +3,8 @@
 TargetBufferSize = 120
 AimPointMainframeIndex = 0
 NonAimPointMainframeIndex = nil
+TTTIterationThreshold = 5
+TTTMaxIterations = 4
 
 TargetLists = {
   AA = {
@@ -175,18 +177,21 @@ function FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
 end
 
 function PredictTarget(I, target, mPos, mSpeed, delay, Interval, minConv)
-   tPos = target.Position[target.Index]
-   tVel = target.Velocity
-   aPos = target.AimPoint[target.Index]
+   local tPos = target.Position[target.Index]
+   local tVel = target.Velocity
+   local aPos = target.AimPoint[target.Index]
    -- Find an initial ttt to find the secant width
    local ttt = FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
-   -- Find the secant velocity
-   local secantVelocity = PredictVelocity(I, target, aPos, Interval(ttt+delay))
-
-   -- Use this to refine the TTT guess
-   ttt = FindConvergence(I, tPos, secantVelocity, mPos, mSpeed, delay, minConv)
-   secantVelocity = PredictVelocity(I, target, aPos, Interval(ttt+delay))
-   return aPos + secantVelocity * (ttt+delay)
+   for i = 1, TTTMaxIterations do
+     oldVel = tVel
+     tVel = PredictVelocity(I, target, aPos, Interval(ttt+delay))
+     -- Use the secant velocity to refine the TTT guess
+     ttt = FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
+     if Length(oldVel - tVel) < TTTIterationThreshold then
+       break
+     end
+   end
+   return aPos + tVel * (ttt+delay)
 end
 
 function Update(I)
