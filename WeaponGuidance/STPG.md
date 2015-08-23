@@ -23,7 +23,6 @@ To account for the target prioritization card's ambivalence to target direction,
 
 ## WeaponSystems
 `WeaponSystems` is an array indexed by the weapon group number containing information specific to the weapons in that group. This code assumes that all components in a system are practically homogenous; assign different types of weapons to different weapon groups. And for now, only put one group of weapons on each turret. Only missiles and lasers are presently supported.
-
 + `Type`: 0 for lasers, 1 for cannon, 2 for missiles. For turreted weapons, use the weapon type on the turret.
 + `TargetList`: The virtual mainframe that will be used for targetting.
 + `MinimumAltitude`: The minimum altitude of the aimpoint. Invalid aimpoints will be projected up to this altitude.
@@ -39,7 +38,7 @@ To account for the target prioritization card's ambivalence to target direction,
 + `ProxAngle`: The angle to the aimpoint required for a proximity detonation (for narrow frags).
 + `SecantInterval`: `Time -> Int`. The number of ticks over which to average velocity as a function of the time to target. This should usually converge to (0,0); `math.ceil(40*ttt)` works well.
 + `CullSpeed`: The speed below which missiles will be manually detonated. Useful for preserving system resources (particularly with thumpers, which are of little use after slowing down).
-+ `TransceiverIndices`: The indices of the controlled Lua missiles. These will be wrong if low indices are damaged, but until `GetLuaTransceiverInfo` is fixed I cannot do anything about that.
++ `TransceiverIndices`: The indices of the attached Lua transceivers. These will be wrong if low indices are damaged, but until `GetLuaTransceiverInfo` is fixed I cannot do anything about that. nil controls none; `'all'` controls all extant transceivers.
 + `TTTIterationThreshold`: If calculating an intercept point yields a proportional change in TT above this threshold, it will be recalculated with the new TTT.
 + `TTTMaxIterations`: The maximum number of iterations to converge on a TTT. 0 will use `TargetInfo.Velocity`. These are potentially expensive, so keep low.
 + `UseAimpointVelocity`: Whether to calculate the velocity from the aimpoint or the vehicle position. Aimpoint velocity is noisier but more precise, particularly when the aimpoint target is far from the vehicle position. It does jump noticeably whenever the aimpoint is destroyed; best used for weapons firing distinct volleys (travel time less than reload time).

@@ -34,7 +34,7 @@ WeaponSystems[1] = {
     ProxRadius = nil,
     SecantInterval = function(ttt) return math.ceil(40*ttt/2) end,
     CullSpeed = 50,
-    TransceiverIndices = {0,1},
+    TransceiverIndices = 'all',
     TTTIterationThreshold = 0.1,
     TTTMaxIterations = 3,
     SecantPoint = 'Position'
@@ -221,7 +221,16 @@ function Update(I)
   for wsi = 0, 5 do
     local ws = WeaponSystems[wsi]
     if ws and ws.TransceiverIndices then
-      for ind, trans in ipairs(ws.TransceiverIndices) do
+      local indices = {}
+      if ws.TransceiverIndices == 'all' then
+        indices = {}
+        for i = 0, I:GetLuaTransceiverCount - 1 do
+          table.insert(indices, i)
+        end
+      else
+        indices = ws.TransceiverIndices
+      end
+      for ind, trans in ipairs(indices) do
         if I:GetLuaTransceiverInfo(trans).Valid then
           for mi = 0, I:GetLuaControlledMissileCount(trans) - 1 do
             local mInfo = I:GetLuaControlledMissileInfo(trans, mi)
