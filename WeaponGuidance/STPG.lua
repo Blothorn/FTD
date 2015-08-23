@@ -16,10 +16,10 @@ TargetLists = {
   }
 }
 
-WeaponSystems = {
--- Dart AA thumpers
-  {
-    Group = 1,
+WeaponSystems = {}
+
+-- Sample configuration (Dart AA thumpers)
+WeaponSystems[1] = {
     Type = 2,
     TargetList = 'AA',
     MaximumAltitude = 99999,
@@ -37,7 +37,6 @@ WeaponSystems = {
     TTTIterationThreshold = 0.1,
     TTTMaxIterations = 3,
     SecantPoint = 'Position'
-  }
 }
 
 flag = 0
@@ -116,14 +115,14 @@ function UpdateTargets(I)
         Targets[t.Id] = nil
       else
         local tar = Targets[t.Id]
-        
+
         if tar.Index <= TargetBufferSize then
           tar.Index = tar.Index + 1
         else
           tar.Index = 1
           tar.Wrapped = 1
         end
-        
+
         tar.Velocity = t.Velocity
         tar.Position[tar.Index] = t.Position
         tar.AimPoint[tar.Index] = t.AimPointPosition
@@ -240,14 +239,15 @@ function Update(I)
             local target = Targets[Missiles[mInfo.Id].Target]
             if target then
               target.Flag = flag
-              
+
               if ws.ProxRadius and Length(target.AimPoint[target.Index] - mInfo.Position) < ws.ProxRadius then
                 I:DetonateLuaControlledMissile(trans,m)
               end
-              
+
               local mSpeed = math.max(Length(mInfo.Velocity), ws.Speed)
               tPos = PredictTarget(I, target, mInfo.Position, ws.Speed, 0, ws.SecantInterval, ws.MinimumConvergenceSpeed)
-              I:SetLuaControlledMissileAimPoint(trans, mi, tPos.x, math.min(ws.MaximumAltitude, math.max(tPos.y, ws.MinimumAltitude)),tPos.z)
+              tPos.y = math.min(ws.MaximumAltitude, math.max(tPos.y, ws.MinimumAltitude))
+              I:SetLuaControlledMissileAimPoint(trans, mi, tPos.x, tPos.y,tPos.z)
             end
           end
         end

@@ -24,7 +24,6 @@ To account for the target prioritization card's ambivalence to target direction,
 ## WeaponSystems
 `WeaponSystems` is an array indexed by the weapon group number containing information specific to the weapons in that group. This code assumes that all components in a system are practically homogenous; assign different types of weapons to different weapon groups. And for now, only put one group of weapons on each turret. Only missiles and lasers are presently supported.
 
-+ `Group`: Weapon group (0-5).
 + `Type`: 0 for lasers, 1 for cannon, 2 for missiles. For turreted weapons, use the weapon type on the turret.
 + `TargetList`: The virtual mainframe that will be used for targetting.
 + `MinimumAltitude`: The minimum altitude of the aimpoint. Invalid aimpoints will be projected up to this altitude.
