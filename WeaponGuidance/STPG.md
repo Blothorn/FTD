@@ -33,6 +33,7 @@ To account for the target prioritization card's ambivalence to target direction,
 + `FiringAngle`: Maximum deviation at which to fire. Future plans to allow for a vector3 to better accomodate missiles on turrets with no/limited elevation.
 + `Speed`: Expected mean speed. Used for calculations before flight time is calculated. Important for missiles, as their `WeaponInfo.Speed` is a fixed and inaccurate 100.
 + `LaunchDelay`: Expected delay incurred (relative to a launch at `Speed`) during launch (added flat to ttt when calculating intercept position for aiming and range calculations).
++ `LaunchElevation`: Total elevation change during launch (for dropped missiles with a delay, or missiles with angled ejection).
 + `MinimumConvergenceSpeed`: A minimum convergence speed when calculating intercept points. Useful for getting missiles to follow a fast target in the hope that he will turn back in range (with higher values sticking closer to a pursuit course), but too high a value will lead to undercorrection in otherwise valid intercept solutions.
 + `ProxRadius`: The distance from the target at which a missile will be manually detonated.
 + `ProxAngle`: The angle to the aimpoint required for a proximity detonation (for narrow frags).

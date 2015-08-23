@@ -29,6 +29,7 @@ WeaponSystems[1] = {
     FiringAngle = 60,
     Speed = 150,
     LaunchDelay = 0.3,
+    LaunchElevation = -15,
     MinimumConvergenceSpeed = 50,
     ProxRadius = nil,
     SecantInterval = function(ttt) return math.ceil(40*ttt/2) end,
@@ -210,7 +211,7 @@ function Update(I)
       tIndex = TargetLists[ws.TargetList].PresentTarget
       if Targets[tIndex] then
         local tPos = PredictTarget(I, Targets[tIndex], w.GlobalPosition, ws.Speed, ws.LaunchDelay, ws.SecantInterval, ws.MinimumConvergenceSpeed)
-        tPos.y = tPos.y + 15
+        tPos.y = tPos.y - ws.LaunchElevation
         local vector = tPos - w.GlobalPosition
         vector = vector / Length(vector)
         I:AimWeaponInDirection(i, vector.x, vector.y, vector.z, w.WeaponSlot)
