@@ -22,23 +22,24 @@ To account for the target prioritization card's ambivalence to target direction,
 + `PresentTarget`: The index of the present target (set automatically).
 
 ## WeaponSystems
-`WeaponSystems` is an array indexed by the weapon group number containing information specific to the weapons in that group. This code assumes that all components in a system are practically homogenous; assign different types of weapons to different weapon groups. And for now, only put one group of weapons on each turret. Only missiles and lasers are presently supported.
+`WeaponSystems` is an array indexed by the weapon group number, entries in which contain information specific to the weapons in that group. This code assumes that all components in a system are practically homogenous; assign different types of weapons to different weapon groups. And for now, only put one group of weapons on each turret. Only missiles are presently supported.
+
+### Basic settings
 + `Type`: 0 for lasers, 1 for cannon, 2 for missiles. For turreted weapons, use the weapon type on the turret.
 + `TargetList`: The virtual mainframe that will be used for targetting.
-+ `MinimumAltitude`: The minimum altitude of the aimpoint. Invalid aimpoints will be projected up to this altitude.
-+ `MaximumAltitude`: The maximum altitude of the aimpoint. Invalid aimpoints will be projected down to this altitude.
+
+### Firing restrictions. Note that target list restrictions determine whether a weapon system attempts to engage a target, and the weapon system settings whether it actually fires. This allows actions such as pre-aiming weapons at out-of-range (but closing) targets.
++ `MinimumAltitude`: The minimum altitude of the aimpoint. Invalid aimpoints will be projected up to this altitude for missiles in flight.
++ `MaximumAltitude`: The maximum altitude of the aimpoint. Invalid aimpoints will be projected down to this altitude for missiles in flight.
 + `MinimumRange`: The minimum range to the target. Useful primarily for off-axis missiles.
-+ `MaximumRange`: Maximum range to the intercept point (calculated using speed/delay TTT).
++ `MaximumRange`: Maximum range to the intercept point.
 + `FiringAngle`: Maximum deviation at which to fire. Future plans to allow for a vector3 to better accomodate missiles on turrets with no/limited elevation.
-+ `Speed`: Expected mean speed. Used for calculations before flight time is calculated. Important for missiles, as their `WeaponInfo.Speed` is a fixed and inaccurate 100.
+
+### Missile settings. These help the target prediction AI.
++ `Speed`: Expected mean speed (disregarding launch delays). This is ignored if the missile is travelling faster, but avoids missiles taking excessive leads early in their flight. Important for missiles, as their `WeaponInfo.Speed` is a fixed and inaccurate 100.
 + `LaunchDelay`: Expected delay incurred (relative to a launch at `Speed`) during launch (added flat to ttt when calculating intercept position for aiming and range calculations).
 + `LaunchElevation`: Total elevation change during launch (for dropped missiles with a delay, or missiles with angled ejection).
 + `MinimumConvergenceSpeed`: A minimum convergence speed when calculating intercept points. Useful for getting missiles to follow a fast target in the hope that he will turn back in range (with higher values sticking closer to a pursuit course), but too high a value will lead to undercorrection in otherwise valid intercept solutions.
 + `ProxRadius`: The distance from the target at which a missile will be manually detonated.
-+ `ProxAngle`: The angle to the aimpoint required for a proximity detonation (for narrow frags).
-+ `SecantInterval`: `Time -> Int`. The number of ticks over which to average velocity as a function of the time to target. This should usually converge to (0,0); `math.ceil(40*ttt)` works well.
-+ `CullSpeed`: The speed below which missiles will be manually detonated. Useful for preserving system resources (particularly with thumpers, which are of little use after slowing down).
++ `SecantInterval` (optional): `Time -> Int`. The number of ticks over which to average velocity as a function of the time to target. This should usually converge to (0,0); higher values provide more smoothing but are slower to react to changes in direction. Defaults to a sensible value if nil (`math.ceil(40*ttt)`).
 + `TransceiverIndices`: The indices of the attached Lua transceivers. These will be wrong if low indices are damaged, but until `GetLuaTransceiverInfo` is fixed I cannot do anything about that. nil controls none; `'all'` controls all extant transceivers.
-+ `TTTIterationThreshold`: If calculating an intercept point yields a proportional change in TT above this threshold, it will be recalculated with the new TTT.
-+ `TTTMaxIterations`: The maximum number of iterations to converge on a TTT. 0 will use `TargetInfo.Velocity`. These are potentially expensive, so keep low.
-+ `UseAimpointVelocity`: Whether to calculate the velocity from the aimpoint or the vehicle position. Aimpoint velocity is noisier but more precise, particularly when the aimpoint target is far from the vehicle position. It does jump noticeably whenever the aimpoint is destroyed; best used for weapons firing distinct volleys (travel time less than reload time).
