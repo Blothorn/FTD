@@ -28,14 +28,16 @@ To account for the target prioritization card's ambivalence to target direction,
 + `Type`: 0 for lasers, 1 for cannon, 2 for missiles. For turreted weapons, use the weapon type on the turret.
 + `TargetList`: The virtual mainframe that will be used for targetting.
 
-### Firing restrictions. Note that target list restrictions determine whether a weapon system attempts to engage a target, and the weapon system settings whether it actually fires. This allows actions such as pre-aiming weapons at out-of-range (but closing) targets.
+### Firing restrictions.
+Note that target list restrictions determine whether a weapon system attempts to engage a target, and the weapon system settings whether it actually fires. This allows actions such as pre-aiming weapons at out-of-range (but closing) targets.
 + `MinimumAltitude`: The minimum altitude of the aimpoint. Invalid aimpoints will be projected up to this altitude for missiles in flight.
 + `MaximumAltitude`: The maximum altitude of the aimpoint. Invalid aimpoints will be projected down to this altitude for missiles in flight.
 + `MinimumRange`: The minimum range to the target. Useful primarily for off-axis missiles.
 + `MaximumRange`: Maximum range to the intercept point.
 + `FiringAngle`: Maximum deviation at which to fire. Future plans to allow for a vector3 to better accomodate missiles on turrets with no/limited elevation.
 
-### Missile settings. These help the target prediction AI.
+### Missile settings.
+These help the target prediction AI.
 + `Speed`: Expected mean speed (disregarding launch delays). This is ignored if the missile is travelling faster, but avoids missiles taking excessive leads early in their flight. Important for missiles, as their `WeaponInfo.Speed` is a fixed and inaccurate 100.
 + `LaunchDelay`: Expected delay incurred (relative to a launch at `Speed`) during launch (added flat to ttt when calculating intercept position for aiming and range calculations).
 + `LaunchElevation`: Total elevation change during launch (for dropped missiles with a delay, or missiles with angled ejection).
@@ -43,3 +45,10 @@ To account for the target prioritization card's ambivalence to target direction,
 + `ProxRadius`: The distance from the target at which a missile will be manually detonated.
 + `SecantInterval` (optional): `Time -> Int`. The number of ticks over which to average velocity as a function of the time to target. This should usually converge to (0,0); higher values provide more smoothing but are slower to react to changes in direction. Defaults to a sensible value if nil (`math.ceil(40*ttt)`).
 + `TransceiverIndices`: The indices of the attached Lua transceivers. These will be wrong if low indices are damaged, but until `GetLuaTransceiverInfo` is fixed I cannot do anything about that. nil controls none; `'all'` controls all extant transceivers.
+
+# Implementation notes
+Target prediction uses secant approximations to estimate future target velocity and then uses the law of cosines to calculate an intercept point (finding the time that solves for a triangle given distance to target, angle (from the target's perspective) between the missile or launch point and the target's velocity, and target and projectile speeds).
+
+The `flag` global variable  and the `.Flag` fields in `Targets` and `Missiles` implement a rudimentary tracing garbage collection.
+A GC cycle includes missile targeting in one tick (setting the flag for living missiles and active missile targets), calculation of target list priority targets in the next generation (flagging those targets), and finishes with deleting entries whose flag has not been set that cycle and flipping the flag.
+If replacing the missile guidance code, be sure to set the flag for whatever entries in those tables you want to persist.
