@@ -163,9 +163,8 @@ function FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
    local b = 2 * targetSpeed * mSpeed * math.cos(math.rad(targetAngle))
    local c = distance^2
    local det = math.sqrt(b^2-4*a*c)
-   local ttt = 0
+   local ttt = distance / minConv
 
-   if det < 0 then
    if det > 0 then
       local root1 = math.min((-b + det)/(2*a), (-b - det)/(2*a))
       local root2 = math.max((-b + det)/(2*a), (-b - det)/(2*a))
