@@ -45,14 +45,12 @@ DefaultSecantInterval = function(ttt) return math.min(math.ceil(40*ttt/2), 100) 
 Targets = {}
 Missiles = {}
 
-function NewTarget(I, targetInfo)
+function NewTarget(I)
   return {
-    Position = { targetInfo.Position },
-    AimPoint = { targetInfo.AimPointPosition },
-    Index = 1,
+    AimPoints = {},
+    Index = 0,
     Wrapped = 0,
     Flag = flag,
-    Velocity = targetInfo.Velocity
   }
 end
 
@@ -82,7 +80,7 @@ function UpdateTargets(I)
          and (Length(I:GetConstructPosition() - interceptPoint) < tl.MaximumRange) then
            tl.PresentTarget = t.Id
            if not (Targets[t.Id]) then
-             Targets[t.Id] = NewTarget(I, t)
+             Targets[t.Id] = NewTarget(I)
            end
            break
        end
@@ -124,16 +122,15 @@ function UpdateTargets(I)
         end
 
         tar.Velocity = t.Velocity
-        tar.Position[tar.Index] = t.Position
-        tar.AimPoint[tar.Index] = t.AimPointPosition
+        tar[tar.Index] = t.Position
+        tar.AimPoints[0] = t.AimPointPosition
       end
     end
   end
 end
 
 -- I -> Position -> Time -> Velocity
-function PredictVelocity(I, target, aimpoint, interval)
-  local aimpoint = 'Position'
+function PredictVelocity(I, target, interval)
   -- Calculate the interval to use
   if target.Wrapped == 0 then
     interval = target.Index-1
@@ -144,8 +141,8 @@ function PredictVelocity(I, target, aimpoint, interval)
   local velocity = target.Velocity
   if interval > 0 then
     -- Use secant approximation to smooth
-      local oldPos = target[aimpoint][((target.Index - interval) % TargetBufferSize) + 1]
-      velocity = (target[aimpoint][target.Index] - oldPos) * (40 / interval)
+      local oldPos = target[((target.Index - interval) % TargetBufferSize) + 1]
+      velocity = (target[target.Index] - oldPos) * (40 / interval)
    end
    return velocity
 end
@@ -177,14 +174,14 @@ function FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
 end
 
 function PredictTarget(I, target, mPos, mSpeed, delay, Interval, minConv)
-   local tPos = target.Position[target.Index]
+   local tPos = target[target.Index]
    local tVel = target.Velocity
-   local aPos = target.AimPoint[target.Index]
+   local aPos = target.AimPoints[0]
    -- Find an initial ttt to find the secant width
    local ttt = FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
    for i = 1, TTTMaxIterations do
      local oldVel = tVel
-     tVel = PredictVelocity(I, target, aPos, Interval(ttt+delay))
+     tVel = PredictVelocity(I, target, Interval(ttt+delay))
      -- Use the secant velocity to refine the TTT guess
      ttt = FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
      if Length(oldVel - tVel) < TTTIterationThreshold then
@@ -234,7 +231,7 @@ function Update(I)
     if ws and ws.TransceiverIndices then
       local indices = {}
       if ws.TransceiverIndices == 'all' then
-        local indices = {}
+        indices = {}
         for i = 0, I:GetLuaTransceiverCount() - 1 do
           table.insert(indices, i)
         end
@@ -255,7 +252,7 @@ function Update(I)
             if target then
               target.Flag = flag
 
-              local proximity = Length(target.AimPoint[target.Index] - mInfo.Position)
+              local proximity = Length(target.AimPoints[0] - mInfo.Position)
               if ws.ProxRadius and proximity < ws.ProxRadius then
                 I:DetonateLuaControlledMissile(trans,mi)
               end

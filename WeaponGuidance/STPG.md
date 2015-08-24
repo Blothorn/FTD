@@ -20,8 +20,6 @@ To account for the target prioritization card's ambivalence to target direction,
 + `MaximumAltitude`: The maximum altitude of the aimpoint.
 + `MaximumRange`: The maximum range.
 + `TTT`: This flighttime will be used to calculate an intercept point and that checked against the maximum range; it should usually be based on the flight time to maximum range; setting it slightly high will do a better job of pre-aligning weapons so that they can fire when the target enters range (an increased `TTT` is preferred ot an increased `MaximumRange` for this use as the latter will also allow targets just outside true maximum range but not closing)
-+ `Aimpoint`: Whether to use aimpoint. `0` will never use it, `1` will use it and select a different target if the present one violates the altitude restrictions. `2` will try both aimpoint and non-aimpoint mainframes for a valid target position.
-+ `PresentTarget`: The index of the present target (set automatically).
 
 ## WeaponSystems
 `WeaponSystems` is an array indexed by the weapon group number, entries in which contain information specific to the weapons in that group. This code assumes that all components in a system are practically homogenous; assign different types of weapons to different weapon groups. And for now, only put one group of weapons on each turret. Only missiles are presently supported.
