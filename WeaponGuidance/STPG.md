@@ -44,7 +44,7 @@ Note that target list restrictions determine whether a weapon system attempts to
 These help the target prediction AI.
 + `Speed`: Expected mean speed (disregarding launch delays). This is ignored if the missile is travelling faster, but avoids missiles taking excessive leads early in their flight. Important for missiles, as their `WeaponInfo.Speed` is a fixed and inaccurate 100.
 + `LaunchDelay`: Expected delay incurred (relative to a launch at `Speed`) during launch (added flat to ttt when calculating intercept position for aiming and range calculations).
-+ `LaunchElevation`: Total elevation change during launch (for dropped missiles with a delay, or missiles with angled ejection).
++ `InheritedMovement`: Amount of movement inherited from launch vehicle, useful primarily for dumbfire rockets (where it should usually be 1/3). Expressed as seconds of launch vehicle velocity (applied as translation of launcher position)/
 + `MinimumConvergenceSpeed`: A minimum convergence speed when calculating intercept points. Useful for getting missiles to follow a fast target in the hope that he will turn back in range (with higher values sticking closer to a pursuit course), but too high a value will lead to undercorrection in otherwise valid intercept solutions.
 + `ProxRadius`: The distance from the target at which a missile will be manually detonated.
 + `TransceiverIndices`: The indices of the attached Lua transceivers. These will be wrong if low indices are damaged, but until `GetLuaTransceiverInfo` is fixed I cannot do anything about that. nil controls none; `'all'` controls all extant transceivers.

@@ -32,7 +32,6 @@ WeaponSystems[1] = {
     FiringAngle = 60,
     Speed = 175,
     LaunchDelay = 0.3,
-    LaunchElevation = -15,
     MinimumConvergenceSpeed = 150,
     ProxRadius = nil,
     TransceiverIndices = 'all',
@@ -209,7 +208,9 @@ function Update(I)
         local tPos = PredictTarget(I, Targets[tIndex], w.GlobalPosition, ws.Speed, ws.LaunchDelay,
                                    ws.SecantInterval or DefaultSecantInterval,
                                    ws.MinimumConvergenceSpeed)
-        tPos.y = tPos.y - ws.LaunchElevation
+        if ws.InheritedMovement then
+          tPos = tPos - I:GetVelocityVector() * ws.InheritedMovement
+        end
         local vector = tPos - w.GlobalPosition
         vector = vector / Length(vector)
         I:AimWeaponInDirection(i, vector.x, vector.y, vector.z, w.WeaponSlot)
@@ -245,7 +246,7 @@ function Update(I)
           for mi = 0, I:GetLuaControlledMissileCount(trans) - 1 do
             local mInfo = I:GetLuaControlledMissileInfo(trans, mi)
 
-            if Missiles[mInfo.Id] == nil or Targets[Missiles[mInfo.Id]] == nil then
+            if Missiles[mInfo.Id] == nil or Targets[Missiles[mInfo.Id].Target] == nil then
               Missiles[mInfo.Id] = { Target = TargetLists[ws.TargetList].PresentTarget }
             end
 
