@@ -38,12 +38,30 @@ WeaponSystems[1] = {
 }
 
 flag = 0
+normalized = false
 
 DefaultSecantInterval = function(ttt) return math.min(math.ceil(40*ttt/2), 100) end
 
 -- Target buffers
 Targets = {}
 Missiles = {}
+
+-- Normalize weapon configuration
+function Normalize(I)
+  for i = 0, 5 do
+    if WeaponSystems[i] then
+      local ws = WeaponSystems[i]
+      ws.LastFired = -9999
+      if ws.TransceiverIndices == 'all' then
+        ws.TransceiverIndices = {}
+        for i = 0, I:GetLuaTransceiverCount() - 1 do
+          I:Log(i)
+          table.insert(ws.TransceiverIndices, i)
+        end
+      end
+    end
+  end
+end
 
 function NewTarget(I)
   return {
@@ -66,13 +84,13 @@ function UpdateTargets(I)
   if AimPointMainframeIndex < nmf then
     ami = AimPointMainframeIndex
   end
-  
+
   -- Aimpoint locations
   for ti = 0, I:GetNumberOfTargets(ami) do
     local t = I:GetTargetInfo(ami,ti)
     TargetLocations[t.Id] = {t.AimPointPosition}
   end
-  
+
   -- Non-aimpoint locations
   if NonAimPointMainframeIndices then
     for k, mfi in ipairs(NonAimPointMainframeIndices) do
@@ -222,6 +240,11 @@ end
 
 function Update(I)
   I:ClearLogs()
+  if not normalized then
+    Normalize(I)
+    normalized = true
+  end
+  
   UpdateTargets(I, target)
 
   -- Aim and fire
@@ -242,7 +265,7 @@ function Update(I)
         I:AimWeaponInDirection(i, vector.x, vector.y, vector.z, w.WeaponSlot)
 
         local angle = I:Maths_AngleBetweenVectors(w.CurrentDirection, vector)
-        local isDelayed = (ws.Stagger) and I:GetTime() < (ws.LastFired or 0) + ws.Stagger
+        local isDelayed = (ws.Stagger) and I:GetTime() < ws.LastFired + ws.Stagger
         if Length(w.GlobalPosition - tPos) < ws.MaximumRange
            and angle < ws.FiringAngle and not isDelayed then
           local fired = I:FireWeapon(i, w.WeaponSlot)
@@ -258,16 +281,7 @@ function Update(I)
   for wsi = 0, 5 do
     local ws = WeaponSystems[wsi]
     if ws and ws.TransceiverIndices then
-      local indices = {}
-      if ws.TransceiverIndices == 'all' then
-        indices = {}
-        for i = 0, I:GetLuaTransceiverCount() - 1 do
-          table.insert(indices, i)
-        end
-      else
-        indices = ws.TransceiverIndices
-      end
-      for ind, trans in ipairs(indices) do
+      for ind, trans in ipairs(ws.TransceiverIndices) do
         if I:GetLuaTransceiverInfo(trans).Valid then
           for mi = 0, I:GetLuaControlledMissileCount(trans) - 1 do
             local mInfo = I:GetLuaControlledMissileInfo(trans, mi)
