@@ -183,7 +183,7 @@ function PredictTarget(I, target, mPos, mSpeed, delay, Interval, minConv)
    -- Find an initial ttt to find the secant width
    local ttt = FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
    for i = 1, TTTMaxIterations do
-     oldVel = tVel
+     local oldVel = tVel
      tVel = PredictVelocity(I, target, aPos, Interval(ttt+delay))
      -- Use the secant velocity to refine the TTT guess
      ttt = FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
@@ -203,7 +203,7 @@ function Update(I)
     local w = I:GetWeaponInfo(i)
     if WeaponSystems[w.WeaponSlot] then
       local ws = WeaponSystems[w.WeaponSlot]
-      tIndex = TargetLists[ws.TargetList].PresentTarget
+      local tIndex = TargetLists[ws.TargetList].PresentTarget
       if Targets[tIndex] then
         local tPos = PredictTarget(I, Targets[tIndex], w.GlobalPosition, ws.Speed, ws.LaunchDelay,
                                    ws.SecantInterval or DefaultSecantInterval,
@@ -234,7 +234,7 @@ function Update(I)
     if ws and ws.TransceiverIndices then
       local indices = {}
       if ws.TransceiverIndices == 'all' then
-        indices = {}
+        local indices = {}
         for i = 0, I:GetLuaTransceiverCount() - 1 do
           table.insert(indices, i)
         end
@@ -261,9 +261,9 @@ function Update(I)
               end
 
               local mSpeed = math.max(Length(mInfo.Velocity), ws.Speed)
-              tPos = PredictTarget(I, target, mInfo.Position, ws.Speed, 0,
-                                   ws.SecantInterval or DefaultSecantInterval,
-                                   ws.MinimumConvergenceSpeed)
+              local tPos = PredictTarget(I, target, mInfo.Position, ws.Speed, 0,
+                                         ws.SecantInterval or DefaultSecantInterval,
+                                         ws.MinimumConvergenceSpeed)
               tPos.y = math.min(ws.MaximumAltitude, math.max(tPos.y, ws.MinimumAltitude))
               I:SetLuaControlledMissileAimPoint(trans, mi, tPos.x, tPos.y,tPos.z)
             end
