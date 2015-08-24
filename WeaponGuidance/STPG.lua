@@ -2,7 +2,7 @@
 -- Globals
 TargetBufferSize = 120
 AimPointMainframeIndex = 0
-NonAimPointMainframeIndex = nil
+NonAimPointMainframeIndices = nil
 TTTIterationThreshold = 5
 TTTMaxIterations = 4
 
@@ -59,8 +59,35 @@ function Length(vel)
 end
 
 function UpdateTargets(I)
-  -- Find priority targets
+  -- Find all target locations
   local nmf = I:GetNumberOfMainframes()
+  local TargetLocations = {}
+  local ami = 0
+  if AimPointMainframeIndex < nmf then
+    ami = AimPointMainframeIndex
+  end
+  
+  -- Aimpoint locations
+  for ti = 0, I:GetNumberOfTargets(ami) do
+    local t = I:GetTargetInfo(ami,ti)
+    TargetLocations[t.Id] = {t.AimPointPosition}
+  end
+  
+  -- Non-aimpoint locations
+  if NonAimPointMainframeIndices then
+    for k, mfi in ipairs(NonAimPointMainframeIndices) do
+      if mfi < nmf then
+        for ti = 0, I:GetNumberOfTargets(mfi) do
+          local t = I:GetTargetInfo(mfi,ti)
+          if TargetLocations[t.Id] then
+            table.insert(TargetLocations[t.Id], t.AimPointPosition)
+          end
+        end
+      end
+    end
+  end
+
+  -- Find priority targets
   for tli, tl in pairs(TargetLists) do
     local m = 0
     if tl.MainframeIndex < nmf then
@@ -73,17 +100,24 @@ function UpdateTargets(I)
        local t = I:GetTargetInfo(m,tInd)
        local speed = Length(t.Velocity)
        local interceptPoint = t.Position + t.Velocity * tl.TTT
-       if (t.AimPointPosition.y > tl.MinimumAltitude)
-         and (t.AimPointPosition.y < tl.MaximumAltitude)
-         and (speed > tl.MinimumSpeed)
+       if (speed > tl.MinimumSpeed)
          and (speed < tl.MaximumSpeed)
          and (Length(I:GetConstructPosition() - interceptPoint) < tl.MaximumRange) then
-           tl.PresentTarget = t.Id
-           if not (Targets[t.Id]) then
-             Targets[t.Id] = NewTarget(I)
-           end
-           break
-       end
+        local found = false
+        for k, p in ipairs(TargetLocations[t.Id]) do
+          if (p.y > tl.MinimumAltitude) and (p.y < tl.MaximumAltitude) then
+            found = true
+            break
+          end
+        end
+        if found then
+          tl.PresentTarget = t.Id
+          if not (Targets[t.Id]) then
+            Targets[t.Id] = NewTarget(I)
+          end
+          break
+        end
+      end
     end
   end
 
@@ -101,11 +135,6 @@ function UpdateTargets(I)
   flag = flag+1 % 2
 
   -- Update target info
-  local ami = 0
-  if AimPointMainframeIndex < nmf then
-    ami = AimPointMainframeIndex
-  end
-
   for tInd = 0, I:GetNumberOfTargets(ami) - 1 do
     local t = I:GetTargetInfo(ami, tInd)
     if Targets[t.Id] then
@@ -123,7 +152,7 @@ function UpdateTargets(I)
 
         tar.Velocity = t.Velocity
         tar[tar.Index] = t.Position
-        tar.AimPoints[0] = t.AimPointPosition
+        tar.AimPoints = TargetLocations[t.Id]
       end
     end
   end
@@ -176,7 +205,7 @@ end
 function PredictTarget(I, target, mPos, mSpeed, delay, Interval, minConv)
    local tPos = target[target.Index]
    local tVel = target.Velocity
-   local aPos = target.AimPoints[0]
+   local aPos = target.AimPoints[1]
    -- Find an initial ttt to find the secant width
    local ttt = FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
    for i = 1, TTTMaxIterations do
@@ -252,7 +281,7 @@ function Update(I)
             if target then
               target.Flag = flag
 
-              local proximity = Length(target.AimPoints[0] - mInfo.Position)
+              local proximity = Length(target.AimPoints[1] - mInfo.Position)
               if ws.ProxRadius and proximity < ws.ProxRadius then
                 I:DetonateLuaControlledMissile(trans,mi)
               end
