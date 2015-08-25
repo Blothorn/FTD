@@ -50,6 +50,7 @@ These help the target prediction AI.
 + `MinimumConvergenceSpeed`: A minimum convergence speed when calculating intercept points. Useful for getting missiles to follow a fast target in the hope that he will turn back in range (with higher values sticking closer to a pursuit course), but too high a value will lead to undercorrection in otherwise valid intercept solutions.
 + `ProxRadius`: The distance from the target at which a missile will be manually detonated.
 + `TransceiverIndices`: The indices of the attached Lua transceivers. These will be wrong if low indices are damaged, but until `GetLuaTransceiverInfo` is fixed I cannot do anything about that. nil controls none; `'all'` controls all extant transceivers.
++ `ignoreSpeed`: The speed below which the missile will not be guided. Reduces lag if missiles are missing.
 
 # Implementation notes
 Target prediction uses secant approximations to estimate future target velocity and then uses the law of cosines to calculate an intercept point (finding the time that solves for a triangle given distance to target, angle (from the target's perspective) between the missile or launch point and the target's velocity, and target and projectile speeds).
