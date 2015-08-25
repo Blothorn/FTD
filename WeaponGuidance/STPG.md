@@ -7,7 +7,7 @@ Because the game scales the number of ticks per second when the game speed is ch
 ## Globals
 + `TargetBufferSize`: The number of ticks of position information kept. Higher numbers allow greater smoothing (accompanied by slower response to manuevers) at the expense of memory use. 40 ticks = 1 second.
 + `AimPointMainframeIndex`: A mainframe using aimpoint.
-+ `NonAimPointMainframeIndex`: A mainframe not using aimpoint.
++ `NonAimPointMainframeIndices`: A mainframe not using aimpoint.
 + `TTTIterationThreshold`: Since secant width depends on time to target, and TTT on the estimated velocity, this code recalculates the TTT and velocity if the previous update changed velocity by more than `TTTIterationThreshold`.
 + `TTTMaxIterations`: The maximum number of such iterations to perform.
 
@@ -29,6 +29,7 @@ To account for the target prioritization card's ambivalence to target direction,
 + `TargetList`: The virtual mainframe that will be used for targetting.
 + `Stagger`: Minimum time between consecutive firings. Applies per controller (and is thus completely seperate from stagger among the missiles attached to a controller). Defaults to none.
 + `SecantInterval` (optional): `Time -> Int`. The number of ticks over which to average velocity as a function of the time to target. This should usually converge to (0,0); higher values provide more smoothing but are slower to react to changes in direction. Defaults to a sensible value if nil (`math.ceil(40*ttt)`).
++ AimPointProportion: The proportion of shots aimed at the aimpoint, rather than a random block. Has no effect unless both `AimPointMainframeIndex` and `NonAimPointMainframeIndices` are accurately populated. What effect this has depends on the weapon system; presently only implemented for guided missiles.
 
 ### Firing restrictions.
 Note that target list restrictions determine whether a weapon system attempts to engage a target, and the weapon system settings whether it actually fires. This allows actions such as pre-aiming weapons at out-of-range (but closing) targets.

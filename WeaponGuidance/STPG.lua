@@ -9,12 +9,12 @@ TTTMaxIterations = 4
 TargetLists = {
   AA = {
     MainframeIndex = 0,
-      MinimumSpeed = 0,
-      MaximumSpeed = 350,
-      MinimumAltitude = -5,
-      MaximumAltitude = 99999,
+    MinimumSpeed = 0,
+    MaximumSpeed = 350,
+    MinimumAltitude = -5,
+    MaximumAltitude = 99999,
     MaximumRange = 1000,
-    TTT = 2
+    TTT = 5
   }
 }
 
@@ -35,6 +35,7 @@ WeaponSystems[1] = {
     MinimumConvergenceSpeed = 150,
     ProxRadius = nil,
     TransceiverIndices = 'all',
+    AimPointProportion = 0.5,
 }
 
 flag = 0
@@ -52,10 +53,12 @@ function Normalize(I)
     if WeaponSystems[i] then
       local ws = WeaponSystems[i]
       ws.LastFired = -9999
+      if ws.AimPointProportion > 0 then
+        ws.AimPointCounter = 1
+      end
       if ws.TransceiverIndices == 'all' then
         ws.TransceiverIndices = {}
         for i = 0, I:GetLuaTransceiverCount() - 1 do
-          I:Log(i)
           table.insert(ws.TransceiverIndices, i)
         end
       end
@@ -69,6 +72,7 @@ function NewTarget(I)
     Index = 0,
     Wrapped = 0,
     Flag = flag,
+    AimPointIndex = 2
   }
 end
 
@@ -220,8 +224,7 @@ function FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
    return ttt
 end
 
-function PredictTarget(I, target, mPos, mSpeed, delay, Interval, minConv)
-   local tPos = target[target.Index]
+function PredictTarget(I, tPos, target, mPos, mSpeed, delay, Interval, minConv)
    local tVel = target.Velocity
    local aPos = target.AimPoints[1]
    -- Find an initial ttt to find the secant width
@@ -243,6 +246,7 @@ function Update(I)
   if not normalized then
     Normalize(I)
     normalized = true
+I:Log('normalizing')
   end
   
   UpdateTargets(I, target)
@@ -254,7 +258,7 @@ function Update(I)
       local ws = WeaponSystems[w.WeaponSlot]
       local tIndex = TargetLists[ws.TargetList].PresentTarget
       if Targets[tIndex] then
-        local tPos = PredictTarget(I, Targets[tIndex], w.GlobalPosition, ws.Speed, ws.LaunchDelay,
+        local tPos = PredictTarget(I, Targets[tIndex][Targets[tIndex].Index], Targets[tIndex], w.GlobalPosition, ws.Speed, ws.LaunchDelay,
                                    ws.SecantInterval or DefaultSecantInterval,
                                    ws.MinimumConvergenceSpeed)
         if ws.InheritedMovement then
@@ -288,20 +292,53 @@ function Update(I)
 
             if Missiles[mInfo.Id] == nil or Targets[Missiles[mInfo.Id].Target] == nil then
               Missiles[mInfo.Id] = { Target = TargetLists[ws.TargetList].PresentTarget }
-            end
-
-            Missiles[mInfo.Id].Flag = flag
-            local target = Targets[Missiles[mInfo.Id].Target]
+            end            
+            local m = Missiles[mInfo.Id]
+            
+            local target = Targets[m.Target]
             if target then
               target.Flag = flag
 
-              local proximity = Length(target.AimPoints[1] - mInfo.Position)
-              if ws.ProxRadius and proximity < ws.ProxRadius then
+              local aimPoint = 0              
+              if not m.AimPointIndex or not target.AimPoints[m.AimPointIndex] then
+                local api = target.AimPointIndex
+                if ws.AimPointCounter > 1 then
+                  api = 1
+                  ws.AimPointCounter = ws.AimPointCounter - 1
+                else
+                  target.AimPointIndex = target.AimPointIndex + 1
+                end
+                ws.AimPointCounter = ws.AimPointCounter + ws.AimPointProportion
+                local bestErr = 99999
+                
+                local aps = Targets[m.Target].AimPoints
+                for i = 0, #aps - 1 do
+                  local api2 = ((api + i) % (#aps)) + 1
+                  local candidate = aps[api2]
+                  local err = 0
+                  if candidate.y < ws.MaximumAltitude then
+                    if candidate.y > ws.MinimumAltitude then
+                      m.AimPointIndex = api2
+                      break
+                    elseif ws.MinimumAltitude - candidate.y < bestErr then
+                      m.AimPointIndex = api2
+                      bestErr = ws.MinimumAltitude - candidate.y
+                    end
+                  elseif candidate.y - ws.MinimumAltitude < bestErr then
+                    m.AimPointIndex = api2
+                    bestErr = candidate.y - ws.MinimumAltitude
+                  end
+                end
+              end
+
+              local aimPoint = target.AimPoints[m.AimPointIndex]
+
+              if ws.ProxRadius and Length(aimPoint - mInfo.Position) < ws.ProxRadius then
                 I:DetonateLuaControlledMissile(trans,mi)
               end
 
               local mSpeed = math.max(Length(mInfo.Velocity), ws.Speed)
-              local tPos = PredictTarget(I, target, mInfo.Position, ws.Speed, 0,
+              local tPos = PredictTarget(I, aimPoint, target, mInfo.Position, ws.Speed, 0,
                                          ws.SecantInterval or DefaultSecantInterval,
                                          ws.MinimumConvergenceSpeed)
               tPos.y = math.min(ws.MaximumAltitude, math.max(tPos.y, ws.MinimumAltitude))
