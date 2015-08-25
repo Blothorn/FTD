@@ -306,7 +306,9 @@ function Update(I)
                 if not m.AimPointIndex or gameTime > m.ResetTime
                    or not target.AimPoints[m.AimPointIndex] then
                   local api = target.AimPointIndex
-                  if ws.AimPointCounter > 1 then
+                  if target.AimPoints[m.AimPointIndex] then
+                    api = m.AimPointIndex
+                  elseif ws.AimPointCounter > 1 then
                     api = 1
                     ws.AimPointCounter = ws.AimPointCounter - 1
                   else
@@ -317,7 +319,7 @@ function Update(I)
                   
                   local aps = Targets[m.Target].AimPoints
                   for i = 0, #aps - 1 do
-                    local api2 = ((api + i) % (#aps)) + 1
+                    local api2 = ((api - 1 + i) % (#aps)) + 1
                     local candidate = aps[api2]
                     local err = 0
                     if candidate.y < ws.MaximumAltitude then
