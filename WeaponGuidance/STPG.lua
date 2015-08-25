@@ -36,7 +36,8 @@ WeaponSystems[1] = {
   ProxRadius = nil,
   TransceiverIndices = 'all',
   AimPointProportion = 0.5,
-  ignoreSpeed = 10
+  ignoreSpeed = 10,
+  minimumCruiseAltitude = 3
 }
 
 flag = 0
@@ -238,7 +239,7 @@ function PredictTarget(I, tPos, target, mPos, mSpeed, delay, Interval, minConv)
        break
      end
    end
-   return tPos + tVel * (ttt+delay)
+   return tPos + tVel * (ttt+delay), ttt
 end
 
 function Update(I)
@@ -247,6 +248,7 @@ function Update(I)
     Normalize(I)
     normalized = true
   end
+  local gameTime = I:GetTime()
   
   UpdateTargets(I, target)
 
@@ -257,23 +259,25 @@ function Update(I)
       local ws = WeaponSystems[w.WeaponSlot]
       local tIndex = TargetLists[ws.TargetList].PresentTarget
       if Targets[tIndex] then
-        local tPos = PredictTarget(I, Targets[tIndex].AimPoints[1], Targets[tIndex], w.GlobalPosition, ws.Speed, ws.LaunchDelay,
-                                   ws.SecantInterval or DefaultSecantInterval,
-                                   ws.MinimumConvergenceSpeed)
+        local selfPos = w.GlobalPosition
         if ws.InheritedMovement then
-          tPos = tPos - I:GetVelocityVector() * ws.InheritedMovement
+          selfPos = selfPos + I:GetVelocityVector() * ws.InheritedMovement
         end
+        local tPos = PredictTarget(I, Targets[tIndex].AimPoints[1], Targets[tIndex], selfPos, ws.Speed,
+                                   ws.LaunchDelay, ws.SecantInterval or DefaultSecantInterval,
+                                   ws.MinimumConvergenceSpeed)
+
         local vector = tPos - w.GlobalPosition
         vector = vector / Length(vector)
         I:AimWeaponInDirection(i, vector.x, vector.y, vector.z, w.WeaponSlot)
 
         local angle = I:Maths_AngleBetweenVectors(w.CurrentDirection, vector)
-        local isDelayed = (ws.Stagger) and I:GetTime() < ws.LastFired + ws.Stagger
+        local isDelayed = (ws.Stagger) and gameTime < ws.LastFired + ws.Stagger
         if Length(w.GlobalPosition - tPos) < ws.MaximumRange
            and angle < ws.FiringAngle and not isDelayed then
           local fired = I:FireWeapon(i, w.WeaponSlot)
           if fired then
-            ws.LastFired = I:GetTime()
+            ws.LastFired = gameTime
           end
         end
       end
@@ -299,7 +303,8 @@ function Update(I)
                 target.Flag = flag
               
                 local aimPoint = 0              
-                if not m.AimPointIndex or not target.AimPoints[m.AimPointIndex] then
+                if not m.AimPointIndex or gameTime > m.ResetTime
+                   or not target.AimPoints[m.AimPointIndex] then
                   local api = target.AimPointIndex
                   if ws.AimPointCounter > 1 then
                     api = 1
@@ -328,6 +333,7 @@ function Update(I)
                       bestErr = candidate.y - ws.MinimumAltitude
                     end
                   end
+                  m.ResetTime = gameTime + 0.25
                 end
               
                 local aimPoint = target.AimPoints[m.AimPointIndex]
@@ -337,10 +343,12 @@ function Update(I)
                 end
               
                 local mSpeed = math.max(Length(mInfo.Velocity), ws.Speed)
-                local tPos = PredictTarget(I, aimPoint, target, mInfo.Position, ws.Speed, 0,
-                                           ws.SecantInterval or DefaultSecantInterval,
-                                           ws.MinimumConvergenceSpeed)
-                tPos.y = math.min(ws.MaximumAltitude, math.max(tPos.y, ws.MinimumAltitude))
+                local tPos, ttt = PredictTarget(I, aimPoint, target, mInfo.Position, ws.Speed, 0,
+                                                ws.SecantInterval or DefaultSecantInterval,
+                                                ws.MinimumConvergenceSpeed)
+                if ttt > 0.5 and mInfo.Position.y > 3*ws.MinumumCruiseAltitude then
+                  tPos.y = math.max(tPos.y, ws.MinimumCruiseAltitude)
+                end
                 I:SetLuaControlledMissileAimPoint(trans, mi, tPos.x, tPos.y,tPos.z)
               end
             end
