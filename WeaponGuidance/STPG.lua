@@ -92,7 +92,7 @@ function UpdateTargets(I)
   end
 
   -- Aimpoint locations
-  for ti = 0, I:GetNumberOfTargets(ami) do
+  for ti = 0, I:GetNumberOfTargets(ami) - 1 do
     local t = I:GetTargetInfo(ami,ti)
     TargetLocations[t.Id] = {t.AimPointPosition}
   end
@@ -124,7 +124,7 @@ function UpdateTargets(I)
        local t = I:GetTargetInfo(m,tInd)
        local speed = Length(t.Velocity)
        local interceptPoint = t.Position + t.Velocity * tl.TTT
-       if (speed > tl.MinimumSpeed)
+       if (speed >= tl.MinimumSpeed)
          and (speed < tl.MaximumSpeed)
          and (Length(I:GetConstructPosition() - interceptPoint) < tl.MaximumRange) then
         local found = false
