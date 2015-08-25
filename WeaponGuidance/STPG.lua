@@ -245,7 +245,6 @@ function Update(I)
   if not normalized then
     Normalize(I)
     normalized = true
-I:Log('normalizing')
   end
   
   UpdateTargets(I, target)

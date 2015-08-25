@@ -1,0 +1,8 @@
+Load a vertical structure as an enemy and run this script---aimpoint mainframes will agree and give a constant target, others will alternate.
+
+function Update(I)
+I:ClearLogs()
+  for i = 0, I:GetNumberOfMainframes()-1 do
+    I:Log(i .. '  ' .. I:GetTargetInfo(i, 0).AimPointPosition.y)
+  end
+end
