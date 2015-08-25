@@ -3,6 +3,9 @@ This partially implements a comprehensive weapon system built around a target pr
 
 Because the game scales the number of ticks per second when the game speed is changed, this calculates incorrect target velocities and thus intercept points when the game is slowed down manually (as opposed to simply lagging).
 
+# Abbreviations/definitions
++ TTT: Time to target
+
 # Parameter documentation
 ## Globals
 + `TargetBufferSize`: The number of ticks of position information kept. Higher numbers allow greater smoothing (accompanied by slower response to manuevers) at the expense of memory use. 40 ticks = 1 second.
@@ -19,7 +22,7 @@ To account for the target prioritization card's ambivalence to target direction,
 + `MinimumAltitude`: The minimum altitude of the aimpoint.
 + `MaximumAltitude`: The maximum altitude of the aimpoint.
 + `MaximumRange`: The maximum range.
-+ `TTT`: This flighttime will be used to calculate an intercept point and that checked against the maximum range; it should usually be based on the flight time to maximum range; setting it slightly high will do a better job of pre-aligning weapons so that they can fire when the target enters range (an increased `TTT` is preferred ot an increased `MaximumRange` for this use as the latter will also allow targets just outside true maximum range but not closing)
++ `TTT`: This flighttime will be used to calculate an intercept point and that checked against the maximum range; it should usually be based on the flight time to maximum range; setting it slightly high will do a better job of pre-aligning weapons so that they can fire when the target enters range (an increased `TTT` is preferred to an increased `MaximumRange` for this use as the latter will also allow targets just outside true maximum range but not closing)
 
 ## WeaponSystems
 `WeaponSystems` is an array indexed by the weapon group number, entries in which contain information specific to the weapons in that group. This code assumes that all components in a system are practically homogenous; assign different types of weapons to different weapon groups. And for now, only put one group of weapons on each turret. Only missiles are presently supported.
