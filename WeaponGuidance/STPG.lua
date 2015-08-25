@@ -226,7 +226,6 @@ end
 
 function PredictTarget(I, tPos, target, mPos, mSpeed, delay, Interval, minConv)
    local tVel = target.Velocity
-   local aPos = target.AimPoints[1]
    -- Find an initial ttt to find the secant width
    local ttt = FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
    for i = 1, TTTMaxIterations do
@@ -238,7 +237,7 @@ function PredictTarget(I, tPos, target, mPos, mSpeed, delay, Interval, minConv)
        break
      end
    end
-   return aPos + tVel * (ttt+delay)
+   return tPos + tVel * (ttt+delay)
 end
 
 function Update(I)
