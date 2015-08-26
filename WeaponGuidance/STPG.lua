@@ -36,8 +36,8 @@ WeaponSystems[1] = {
   ProxRadius = nil,
   TransceiverIndices = 'all',
   AimPointProportion = 0.5,
-  ignoreSpeed = 10,
-  minimumCruiseAltitude = 3
+  IgnoreSpeed = 10,
+  MinimumCruiseAltitude = 3
 }
 
 flag = 0
@@ -292,7 +292,7 @@ function Update(I)
         if I:GetLuaTransceiverInfo(trans).Valid then
           for mi = 0, I:GetLuaControlledMissileCount(trans) - 1 do
             local mInfo = I:GetLuaControlledMissileInfo(trans, mi)
-            if Length(mInfo.Velocity) > ws.ignoreSpeed then
+            if Length(mInfo.Velocity) > ws.IgnoreSpeed then
               if Missiles[mInfo.Id] == nil or Targets[Missiles[mInfo.Id].Target] == nil then
                 Missiles[mInfo.Id] = { Target = TargetLists[ws.TargetList].PresentTarget }
               end            
@@ -348,7 +348,7 @@ function Update(I)
                 local tPos, ttt = PredictTarget(I, aimPoint, target, mInfo.Position, ws.Speed, 0,
                                                 ws.SecantInterval or DefaultSecantInterval,
                                                 ws.MinimumConvergenceSpeed)
-                if ttt > 0.5 and mInfo.Position.y > 3*ws.MinumumCruiseAltitude then
+                if ttt > 0.5 and mInfo.Position.y > 3*ws.MinimumCruiseAltitude then
                   tPos.y = math.max(tPos.y, ws.MinimumCruiseAltitude)
                 end
                 I:SetLuaControlledMissileAimPoint(trans, mi, tPos.x, tPos.y,tPos.z)
