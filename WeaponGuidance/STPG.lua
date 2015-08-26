@@ -78,10 +78,6 @@ function NewTarget(I)
   }
 end
 
-function Length(vel)
-  return math.sqrt(vel.x^2 + vel.y^2 + vel.z^2)
-end
-
 function UpdateTargets(I)
   -- Find all target locations
   local nmf = I:GetNumberOfMainframes()
@@ -122,11 +118,11 @@ function UpdateTargets(I)
     tl.PresentTarget = nil
     for tInd = 0, I:GetNumberOfTargets(m) - 1 do
        local t = I:GetTargetInfo(m,tInd)
-       local speed = Length(t.Velocity)
+       local speed = Vector3.Magnitude(t.Velocity)
        local interceptPoint = t.Position + t.Velocity * tl.TTT
        if (speed >= tl.MinimumSpeed)
          and (speed < tl.MaximumSpeed)
-         and (Length(I:GetConstructPosition() - interceptPoint) < tl.MaximumRange) then
+         and (Vector3.Distance(I:GetConstructPosition(), interceptPoint) < tl.MaximumRange) then
         local found = false
         for k, p in ipairs(TargetLocations[t.Id]) do
           if (p.y > tl.MinimumAltitude) and (p.y < tl.MaximumAltitude) then
@@ -203,9 +199,9 @@ end
 function FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
    -- Calculates a time at which the missiles potential sphere intersects the target's track
    local relativePosition = mPos - tPos
-   local distance = Length(relativePosition)
+   local distance = Vector3.Magnitude(relativePosition)
    local targetAngle = I:Maths_AngleBetweenVectors(relativePosition, tVel)
-   local targetSpeed = Length(tVel)
+   local targetSpeed = Vector3.Magnitude(tVel)
 
    -- Find time to earliest possible convergence point
    local a = targetSpeed^2 - mSpeed^2
@@ -235,7 +231,7 @@ function PredictTarget(I, tPos, target, mPos, mSpeed, delay, Interval, minConv)
      tVel = PredictVelocity(I, target, Interval(ttt+delay))
      -- Use the secant velocity to refine the TTT guess
      ttt = FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
-     if Length(oldVel - tVel) < TTTIterationThreshold then
+     if Vector3.Distance(oldVel, tVel) < TTTIterationThreshold then
        break
      end
    end
@@ -249,7 +245,7 @@ function Update(I)
     normalized = true
   end
   local gameTime = I:GetTime()
-  
+
   UpdateTargets(I, target)
 
   -- Aim and fire
@@ -267,13 +263,12 @@ function Update(I)
                                    ws.LaunchDelay, ws.SecantInterval or DefaultSecantInterval,
                                    ws.MinimumConvergenceSpeed)
 
-        local vector = tPos - w.GlobalPosition
-        vector = vector / Length(vector)
+        local vector = Vector3.Normalize(tPos - w.GlobalPosition)
         I:AimWeaponInDirection(i, vector.x, vector.y, vector.z, w.WeaponSlot)
 
         local angle = I:Maths_AngleBetweenVectors(w.CurrentDirection, vector)
         local isDelayed = (ws.Stagger) and gameTime < ws.LastFired + ws.Stagger
-        if Length(w.GlobalPosition - tPos) < ws.MaximumRange
+        if Vector3.Distance(w.GlobalPosition, tPos) < ws.MaximumRange
            and angle < ws.FiringAngle and not isDelayed then
           local fired = I:FireWeapon(i, w.WeaponSlot)
           if fired then
@@ -292,17 +287,17 @@ function Update(I)
         if I:GetLuaTransceiverInfo(trans).Valid then
           for mi = 0, I:GetLuaControlledMissileCount(trans) - 1 do
             local mInfo = I:GetLuaControlledMissileInfo(trans, mi)
-            if Length(mInfo.Velocity) > ws.IgnoreSpeed then
+            if Vector3.Magnitude(mInfo.Velocity) > ws.ignoreSpeed then
               if Missiles[mInfo.Id] == nil or Targets[Missiles[mInfo.Id].Target] == nil then
                 Missiles[mInfo.Id] = { Target = TargetLists[ws.TargetList].PresentTarget }
-              end            
+              end
               local m = Missiles[mInfo.Id]
-              
+
               local target = Targets[m.Target]
               if target then
                 target.Flag = flag
-              
-                local aimPoint = 0              
+
+                local aimPoint = 0
                 if not m.AimPointIndex or gameTime > m.ResetTime
                    or not target.AimPoints[m.AimPointIndex] then
                   local api = target.AimPointIndex
@@ -316,7 +311,7 @@ function Update(I)
                   end
                   ws.AimPointCounter = ws.AimPointCounter + ws.AimPointProportion
                   local bestErr = 99999
-                  
+
                   local aps = Targets[m.Target].AimPoints
                   for i = 0, #aps - 1 do
                     local api2 = ((api - 1 + i) % (#aps)) + 1
@@ -337,14 +332,14 @@ function Update(I)
                   end
                   m.ResetTime = gameTime + 0.25
                 end
-              
+
                 local aimPoint = target.AimPoints[m.AimPointIndex]
-              
-                if ws.ProxRadius and Length(aimPoint - mInfo.Position) < ws.ProxRadius then
+
+                if ws.ProxRadius and Vector3.Distance(aimPoint, mInfo.Position) < ws.ProxRadius then
                   I:DetonateLuaControlledMissile(trans,mi)
                 end
-              
-                local mSpeed = math.max(Length(mInfo.Velocity), ws.Speed)
+
+                local mSpeed = math.max(Vector3.Magnitude(mInfo.Velocity), ws.Speed)
                 local tPos, ttt = PredictTarget(I, aimPoint, target, mInfo.Position, ws.Speed, 0,
                                                 ws.SecantInterval or DefaultSecantInterval,
                                                 ws.MinimumConvergenceSpeed)
