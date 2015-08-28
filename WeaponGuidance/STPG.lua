@@ -287,7 +287,7 @@ function Update(I)
         if I:GetLuaTransceiverInfo(trans).Valid then
           for mi = 0, I:GetLuaControlledMissileCount(trans) - 1 do
             local mInfo = I:GetLuaControlledMissileInfo(trans, mi)
-            if Vector3.Magnitude(mInfo.Velocity) > ws.ignoreSpeed then
+            if Vector3.Magnitude(mInfo.Velocity) > ws.IgnoreSpeed then
               if Missiles[mInfo.Id] == nil or Targets[Missiles[mInfo.Id].Target] == nil then
                 Missiles[mInfo.Id] = { Target = TargetLists[ws.TargetList].PresentTarget }
               end
