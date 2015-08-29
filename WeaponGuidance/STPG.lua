@@ -305,11 +305,11 @@ function Update(I)
                     api = m.AimPointIndex
                   elseif ws.AimPointCounter > 1 then
                     api = 1
-                    ws.AimPointCounter = ws.AimPointCounter - 1
+                    ws.AimPointCounter = ws.AimPointCounter - 1 + ws.AimPointProportion
                   else
                     target.AimPointIndex = target.AimPointIndex + 1
+                    ws.AimPointCounter = ws.AimPointCounter + ws.AimPointProportion
                   end
-                  ws.AimPointCounter = ws.AimPointCounter + ws.AimPointProportion
                   local bestErr = 99999
 
                   local aps = Targets[m.Target].AimPoints
