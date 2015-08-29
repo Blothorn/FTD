@@ -74,7 +74,7 @@ function NewTarget(I)
     Index = 0,
     Wrapped = 0,
     Flag = flag,
-    AimPointIndex = 2
+    AimPointIndex = 0
   }
 end
 
@@ -300,19 +300,19 @@ function Update(I)
                 local aimPoint = 0
                 if not m.AimPointIndex or gameTime > m.ResetTime
                    or not target.AimPoints[m.AimPointIndex] then
-                  local api = target.AimPointIndex
+                  local api = target.AimPointIndex + 2
+                  local aps = Targets[m.Target].AimPoints
                   if target.AimPoints[m.AimPointIndex] then
                     api = m.AimPointIndex
-                  elseif ws.AimPointCounter > 1 then
+                  elseif ws.AimPointCounter >= 1 then
                     api = 1
                     ws.AimPointCounter = ws.AimPointCounter - 1 + ws.AimPointProportion
                   else
-                    target.AimPointIndex = target.AimPointIndex + 1
+                    target.AimPointIndex = (target.AimPointIndex + 1) % #aps
                     ws.AimPointCounter = ws.AimPointCounter + ws.AimPointProportion
                   end
                   local bestErr = 99999
 
-                  local aps = Targets[m.Target].AimPoints
                   for i = 0, #aps - 1 do
                     local api2 = ((api - 1 + i) % (#aps)) + 1
                     local candidate = aps[api2]
