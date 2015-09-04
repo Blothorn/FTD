@@ -15,7 +15,7 @@ TargetLists = {
     MaximumAltitude = 99999,
     MaximumRange = 1200,
     TTT = 5,
-    TargetListDepth = 2,
+    Depth = 2,
   }
 }
 
@@ -40,6 +40,7 @@ WeaponSystems[1] = {
   Endurance = 5,
   MinimumCruiseAltitude = 3,
   MissilesPerTarget = 1,
+  MissilesPerLaunch = 1,
 }
 
 Flag = 0
@@ -60,6 +61,7 @@ function Normalize(I)
       if ws.AimPointProportion > 0 then
         ws.AimPointCounter = 1
       end
+      if not ws.MissilesPerLaunch then ws.MissilesPerLaunch = 1 end
       if ws.TransceiverIndices == 'all' then
         ws.TransceiverIndices = {}
         for i = 0, I:GetLuaTransceiverCount() - 1 do
@@ -67,6 +69,9 @@ function Normalize(I)
         end
       end
     end
+  end
+  for k, tl in pairs(TargetLists) do
+    if not tl.Depth then tl.Depth = 1 end
   end
 end
 
@@ -141,7 +146,7 @@ function UpdateTargets(I, gameTime)
           end
           Targets[t.Id].Flag = Flag
           num = num + 1
-          if num > tl.TargetListDepth then break end
+          if num > tl.Depth then break end
         end
       end
     end
@@ -266,7 +271,8 @@ function Update(I)
       local ws = WeaponSystems[w.WeaponSlot]
       local tIndex = nil
       for k, t in ipairs(TargetLists[ws.TargetList].PresentTarget) do
-        if Targets[t].NumMissiles + Targets[t].NumFired < ws.MissilesPerTarget then
+        if not ws.MissilesPerTarget
+           or Targets[t].NumMissiles + Targets[t].NumFired < ws.MissilesPerTarget then
           tIndex = t
           break
         end
@@ -331,7 +337,8 @@ function Update(I)
                     m.Target = bestIndex
                   end
                 end
-                Targets[m.Target].NumMissiles = Targets[m.Target].NumMissiles + 1
+                Targets[m.Target].NumMissiles
+                  = Targets[m.Target].NumMissiles + ws.MissilesPerLaunch
               end
 
               local target = Targets[m.Target]

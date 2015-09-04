@@ -23,6 +23,7 @@ To account for the target prioritization card's ambivalence to target direction,
 + `MaximumAltitude`: The maximum altitude of the aimpoint.
 + `MaximumRange`: The maximum range.
 + `TTT`: This flighttime will be used to calculate an intercept point and that checked against the maximum range; it should usually be based on the flight time to maximum range; setting it slightly high will do a better job of pre-aligning weapons so that they can fire when the target enters range (an increased `TTT` is preferred to an increased `MaximumRange` for this use as the latter will also allow targets just outside true maximum range but not closing)
++ `Depth` (optional): The number of eligable targets to track. Defaults to 1.
 
 ## WeaponSystems
 `WeaponSystems` is an array indexed by the weapon group number, entries in which contain information specific to the weapons in that group. This code assumes that all components in a system are practically homogenous; assign different types of weapons to different weapon groups. And for now, only put one group of weapons on each turret. Only missiles are presently supported.
@@ -52,6 +53,8 @@ These help the target prediction AI.
 + `TransceiverIndices`: The indices of the attached Lua transceivers. These will be wrong if low indices are damaged, but until `GetLuaTransceiverInfo` is fixed I cannot do anything about that. nil controls none; `'all'` controls all extant transceivers.
 + `ignoreSpeed`: The speed below which the missile will not be guided. Reduces lag if missiles are missing.
 + `MinumumCruiseAltitude`: The minimum altitude to travel at when more than 0.5s from the target.
++ `MissilesPerTarget` (optional): The number of missiles to fire at each eligible target.
++ `MissilesPerLaunch` (optional): The number of missiles launched by each missile controller. Setting this low has no great effect, but may lead to launching more missiles than required.
 
 # Implementation notes
 Target prediction uses secant approximations to estimate future target velocity and then uses the law of cosines to calculate an intercept point (finding the time that solves for a triangle given distance to target, angle (from the target's perspective) between the missile or launch point and the target's velocity, and target and projectile speeds).
