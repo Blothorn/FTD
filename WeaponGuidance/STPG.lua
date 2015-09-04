@@ -13,8 +13,9 @@ TargetLists = {
     MaximumSpeed = 350,
     MinimumAltitude = -5,
     MaximumAltitude = 99999,
-    MaximumRange = 1000,
-    TTT = 5
+    MaximumRange = 1200,
+    TTT = 5,
+    TargetListDepth = 2,
   }
 }
 
@@ -36,11 +37,12 @@ WeaponSystems[1] = {
   ProxRadius = nil,
   TransceiverIndices = 'all',
   AimPointProportion = 0.5,
-  IgnoreSpeed = 10,
-  MinimumCruiseAltitude = 3
+  Endurance = 5,
+  MinimumCruiseAltitude = 3,
+  MissilesPerTarget = 1,
 }
 
-flag = 0
+Flag = 0
 normalized = false
 
 DefaultSecantInterval = function(ttt) return math.min(math.ceil(40*ttt/2), 100) end
@@ -73,12 +75,13 @@ function NewTarget(I)
     AimPoints = {},
     Index = 0,
     Wrapped = 0,
-    Flag = flag,
-    AimPointIndex = 0
+    AimPointIndex = 0,
+    NumMissiles = 0,
+    NumFired = 0,
   }
 end
 
-function UpdateTargets(I)
+function UpdateTargets(I, gameTime)
   -- Find all target locations
   local nmf = I:GetNumberOfMainframes()
   local TargetLocations = {}
@@ -115,7 +118,8 @@ function UpdateTargets(I)
     end
 
     -- Find qualifying target
-    tl.PresentTarget = nil
+    tl.PresentTarget = {}
+    local num = 1
     for tInd = 0, I:GetNumberOfTargets(m) - 1 do
        local t = I:GetTargetInfo(m,tInd)
        local speed = Vector3.Magnitude(t.Velocity)
@@ -131,28 +135,35 @@ function UpdateTargets(I)
           end
         end
         if found then
-          tl.PresentTarget = t.Id
+          tl.PresentTarget[num] = t.Id
           if not (Targets[t.Id]) then
             Targets[t.Id] = NewTarget(I)
           end
-          break
+          Targets[t.Id].Flag = Flag
+          num = num + 1
+          if num > tl.TargetListDepth then break end
         end
       end
     end
   end
 
   -- Cull unused targets
-  for i, t in ipairs(Targets) do
-    if t.Flag ~= flag then
+  for i, t in pairs(Targets) do
+    if t.Flag ~= Flag then
       Targets[i] = nil
+    else
+      t.NumFired = 0
     end
   end
-  for i, t in ipairs(Missiles) do
-    if t.Flag ~= flag then
+  for i, m in pairs(Missiles) do
+    if m.Flag ~= Flag then
+      if Targets[m.Target] then
+        Targets[m.Target].NumMissiles = Targets[m.Target].NumMissiles - 1
+      end
       Missiles[i] = nil
     end
   end
-  flag = flag+1 % 2
+  Flag = (Flag+1) % 2
 
   -- Update target info
   for tInd = 0, I:GetNumberOfTargets(ami) - 1 do
@@ -246,15 +257,21 @@ function Update(I)
   end
   local gameTime = I:GetTime()
 
-  UpdateTargets(I, target)
+  UpdateTargets(I, gameTime)
 
   -- Aim and fire
   for i = 0, I:GetWeaponCount() - 1 do
     local w = I:GetWeaponInfo(i)
     if WeaponSystems[w.WeaponSlot] then
       local ws = WeaponSystems[w.WeaponSlot]
-      local tIndex = TargetLists[ws.TargetList].PresentTarget
-      if Targets[tIndex] then
+      local tIndex = nil
+      for k, t in ipairs(TargetLists[ws.TargetList].PresentTarget) do
+        if Targets[t].NumMissiles + Targets[t].NumFired < ws.MissilesPerTarget then
+          tIndex = t
+          break
+        end
+      end
+      if tIndex and Targets[tIndex] then
         local selfPos = w.GlobalPosition
         if ws.InheritedMovement then
           selfPos = selfPos + I:GetVelocityVector() * ws.InheritedMovement
@@ -273,6 +290,7 @@ function Update(I)
           local fired = I:FireWeapon(i, w.WeaponSlot)
           if fired then
             ws.LastFired = gameTime
+            Targets[tIndex].NumFired = Targets[tIndex].NumFired + 1
           end
         end
       end
@@ -287,15 +305,38 @@ function Update(I)
         if I:GetLuaTransceiverInfo(trans).Valid then
           for mi = 0, I:GetLuaControlledMissileCount(trans) - 1 do
             local mInfo = I:GetLuaControlledMissileInfo(trans, mi)
-            if Vector3.Magnitude(mInfo.Velocity) > ws.IgnoreSpeed then
-              if Missiles[mInfo.Id] == nil or Targets[Missiles[mInfo.Id].Target] == nil then
-                Missiles[mInfo.Id] = { Target = TargetLists[ws.TargetList].PresentTarget }
+            if mInfo.TimeSinceLaunch < ws.Endurance then
+              if not Missiles[mInfo.Id] then
+                Missiles[mInfo.Id] = { Flag = Flag }
+              else
+                Missiles[mInfo.Id].Flag = Flag
               end
               local m = Missiles[mInfo.Id]
+              if m.Target == nil or Targets[m.Target] == nil then
+                local best = 99999
+                local bestIndex = 1
+                local found = false
+                for k, t in ipairs(TargetLists[ws.TargetList].PresentTarget) do
+                  if Targets[t].NumMissiles < ws.MissilesPerTarget then
+                    m.Target = t
+                    found = true
+                    break
+                  else
+                    if Targets[t].NumMissiles < best then
+                      best = Targets[t].NumMissiles
+                      bestIndex = t
+                    end
+                  end
+                  if not found then
+                    m.Target = bestIndex
+                  end
+                end
+                Targets[m.Target].NumMissiles = Targets[m.Target].NumMissiles + 1
+              end
 
               local target = Targets[m.Target]
               if target then
-                target.Flag = flag
+                target.Flag = Flag
 
                 local aimPoint = 0
                 if not m.AimPointIndex or gameTime > m.ResetTime
