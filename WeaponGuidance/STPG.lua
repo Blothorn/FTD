@@ -337,8 +337,10 @@ function Update(I)
                     m.Target = bestIndex
                   end
                 end
-                Targets[m.Target].NumMissiles
-                  = Targets[m.Target].NumMissiles + ws.MissilesPerLaunch
+                if Targets[m.Target] then
+                  Targets[m.Target].NumMissiles
+                    = Targets[m.Target].NumMissiles + ws.MissilesPerLaunch
+                end
               end
 
               local target = Targets[m.Target]
