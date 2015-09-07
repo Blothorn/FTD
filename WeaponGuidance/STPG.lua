@@ -241,7 +241,12 @@ end
 function PredictTarget(I, tPos, target, mPos, mSpeed, delay, Interval, minConv)
    local tVel = target.Velocity
    -- Find an initial ttt to find the secant width
-   local ttt = FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
+   local ttt
+   if Vector3.Distance(mPos, tPos) / mSpeed < 0.75 then
+     ttt = FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
+   else
+     ttt = 1/40
+   end
    for i = 1, TTTMaxIterations do
      local oldVel = tVel
      tVel = PredictVelocity(I, target, Interval(ttt+delay))
