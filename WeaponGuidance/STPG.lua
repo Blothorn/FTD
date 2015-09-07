@@ -129,8 +129,8 @@ function UpdateTargets(I, gameTime)
        local t = I:GetTargetInfo(m,tInd)
        local speed = Vector3.Magnitude(t.Velocity)
        local interceptPoint = t.Position + t.Velocity * tl.TTT
-       if (speed >= tl.MinimumSpeed)
-         and (speed < tl.MaximumSpeed)
+       if t.Protected
+         and (speed >= tl.MinimumSpeed) and (speed < tl.MaximumSpeed)
          and (Vector3.Distance(I:GetConstructPosition(), interceptPoint) < tl.MaximumRange) then
         local found = false
         for k, p in ipairs(TargetLocations[t.Id]) do
@@ -141,7 +141,7 @@ function UpdateTargets(I, gameTime)
         end
         if found then
           tl.PresentTarget[num] = t.Id
-          if not (Targets[t.Id]) then
+          if not Targets[t.Id] then
             Targets[t.Id] = NewTarget(I)
           end
           Targets[t.Id].Flag = Flag
