@@ -115,7 +115,7 @@ function UpdateTargets(I, gameTime)
   -- Find priority targets
   for tli, tl in pairs(TargetLists) do
     local m = (tl.MainframeIndex < nmf and tl.MainframeIndex) or 0
-    
+
     -- Find qualifying target
     tl.PresentTarget = {}
     local num = 1
@@ -255,6 +255,7 @@ function AimFireWeapon(I, i, gameTime)
         break
       end
     end
+
     if tIndex and Targets[tIndex] then
       local selfPos = (ws.InheritedMovement and selfPos + I:GetVelocityVector() * ws.InheritedMovement)
                       or w.GlobalPosition
@@ -353,7 +354,7 @@ function GuideMissile(I, ws, trans, mi, gameTime)
       end
 
       local aimPoint = target.AimPoints[m.AimPointIndex]
-      
+
       if ws.ProxRadius and Vector3.Distance(aimPoint, mInfo.Position) < ws.ProxRadius then
         I:DetonateLuaControlledMissile(trans,mi)
       end
@@ -369,7 +370,7 @@ function GuideMissile(I, ws, trans, mi, gameTime)
     end
   end
 end
-  
+
 function Update(I)
   I:ClearLogs()
   if not normalized then
