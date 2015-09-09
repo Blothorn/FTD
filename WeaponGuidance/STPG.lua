@@ -243,8 +243,8 @@ function PredictTarget(I, tPos, target, mPos, mSpeed, delay, Interval, minConv)
    return tPos + tVel * (ttt+delay), ttt
 end
 
-function AimFireWeapon(I, i, gameTime)
-  local w = I:GetWeaponInfo(i)
+function AimFireWeapon(I, wi, ti, gameTime)
+  local w = (ti and I:GetWeaponInfoOnTurretOrSpinner(ti, wi)) or I:GetWeaponInfo(wi)
   if WeaponSystems[w.WeaponSlot] then
     local ws = WeaponSystems[w.WeaponSlot]
     local tIndex = nil
@@ -263,17 +263,23 @@ function AimFireWeapon(I, i, gameTime)
                                  ws.LaunchDelay, ws.SecantInterval or DefaultSecantInterval,
                                  ws.MinimumConvergenceSpeed)
 
-      local vector = Vector3.Normalize(tPos - w.GlobalPosition)
-      I:AimWeaponInDirection(i, vector.x, vector.y, vector.z, w.WeaponSlot)
+      local v = Vector3.Normalize(tPos - w.GlobalPosition)
+      if ti then
+        I:AimWeaponInDirectionOnTurretOrSpinner(ti, wi, v.x, v.y, v.z, w.WeaponSlot)
+      else
+        I:AimWeaponInDirection(wi, v.x, v.y, v.z, w.WeaponSlot)
+      end
 
-      local angle = I:Maths_AngleBetweenVectors(w.CurrentDirection, vector)
-      local isDelayed = (ws.Stagger) and gameTime < ws.LastFired + ws.Stagger
-      if Vector3.Distance(w.GlobalPosition, tPos) < ws.MaximumRange
-         and angle < ws.FiringAngle and not isDelayed then
-        local fired = I:FireWeapon(i, w.WeaponSlot)
-        if fired then
-          ws.LastFired = gameTime
-          Targets[tIndex].NumFired = Targets[tIndex].NumFired + 1
+      if ws.WeaponType ~= 4 then
+        local isDelayed = (ws.Stagger) and gameTime < ws.LastFired + ws.Stagger
+        if not delayed and Vector3.Distance(w.GlobalPosition, tPos) < ws.MaximumRange
+           and I:Maths_AngleBetweenVectors(w.CurrentDirection, v) < ws.FiringAngle then
+          local fired = (ti and I:FireWeaponOnTurretOrSpinner(ti, wi, w.WeaponSlot))
+                        or I:FireWeapon(wi, w.WeaponSlot)
+          if fired then
+            ws.LastFired = gameTime
+            Targets[tIndex].NumFired = Targets[tIndex].NumFired + 1
+          end
         end
       end
     end
@@ -382,8 +388,13 @@ function Update(I)
   UpdateTargets(I, gameTime)
 
   -- Aim and fire
-  for i = 0, I:GetWeaponCount() - 1 do
-    AimFireWeapon(I, i, gameTime)
+  for wi = 0, I:GetWeaponCount() - 1 do
+    AimFireWeapon(I, wi, nil, gameTime)
+  end
+  for ti = 0, I:GetTurretSpinnerCount() - 1 do
+    for wi = 0, I:GetWeaponCountOnTurretOrSpinner(ti) - 1 do
+      AimFireWeapon(I, wi, ti, gameTime)
+    end
   end
 
   -- Guide missiles

@@ -1,6 +1,8 @@
 # Notes
 This partially implements a comprehensive weapon system built around a target prediction algorithm using secant approximations to improve resolution of velocity predictions (at close range) and smoothing of erratic behaviour (at long range). It performs relatively poorly against targets turning steadily, such as orbiters; this can be mitigated with low secant width settings, and more precise solutions are under consideration.
 
+For turret-mounted weapons, set the turret to the weapon group of the weapon you want to control the turret's aim (usually the least manueverable, if there is more than one), and set weapon controllers on the turret appropriately. This code will now appropriately stagger launches from multiple weapons on the same turret.
+
 Because the game scales the number of ticks per second when the game speed is changed, this calculates incorrect target velocities and thus intercept points when the game is slowed down manually (as opposed to simply lagging).
 
 # Abbreviations/definitions
