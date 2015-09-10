@@ -257,8 +257,11 @@ function AimFireWeapon(I, wi, ti, gameTime)
     end
 
     if tIndex and Targets[tIndex] then
-      local selfPos = (ws.InheritedMovement and selfPos + I:GetVelocityVector() * ws.InheritedMovement)
-                      or w.GlobalPosition
+    if tIndex and Targets[tIndex] then
+      local selfPos = w.GlobalPosition
+      if ws.InheritedMovement then
+        selfPos = selfPos + I:GetVelocityVector() * ws.InheritedMovement)
+      end
       local tPos = PredictTarget(I, Targets[tIndex].AimPoints[1], Targets[tIndex], selfPos, ws.Speed,
                                  ws.LaunchDelay, ws.SecantInterval or DefaultSecantInterval,
                                  ws.MinimumConvergenceSpeed)
