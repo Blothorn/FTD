@@ -1,4 +1,8 @@
--- See Readme in git repository for parameter documentation
+--[[
+Weapon guidance AI, version 0.1.0.0
+https://github.com/Blothorn/FTD for further documentation and license.
+--]]
+
 -- Globals
 TargetBufferSize = 120
 AimPointMainframeIndex = 0
@@ -35,7 +39,6 @@ WeaponSystems[1] = {
   LaunchDelay = 0.3,
   MinimumConvergenceSpeed = 150,
   ProxRadius = nil,
-  TransceiverIndices = 'all',
   AimPointProportion = 0.5,
   Endurance = 5,
   MinimumCruiseAltitude = 3,
@@ -52,6 +55,13 @@ DefaultSecantInterval = function(ttt) return math.min(math.ceil(40*ttt/2), 100) 
 Targets = {}
 Missiles = {}
 
+for i = 0, 5 do
+  if WeaponSystems[i] and WeaponSystems[i].Type == 2 then
+    DefaultMissileGroup = i
+    break
+  end
+end
+
 -- Normalize weapon configuration
 function Normalize(I)
   for i = 0, 5 do
@@ -62,12 +72,6 @@ function Normalize(I)
         ws.AimPointCounter = 1
       end
       if not ws.MissilesPerLaunch then ws.MissilesPerLaunch = 1 end
-      if ws.TransceiverIndices == 'all' then
-        ws.TransceiverIndices = {}
-        for i = 0, I:GetLuaTransceiverCount() - 1 do
-          table.insert(ws.TransceiverIndices, i)
-        end
-      end
     end
   end
   for k, tl in pairs(TargetLists) do
@@ -243,9 +247,9 @@ function PredictTarget(I, tPos, target, mPos, mSpeed, delay, Interval, minConv)
    return tPos + tVel * (ttt+delay), ttt
 end
 
-function AimFireWeapon(I, wi, ti, gameTime)
+function AimFireWeapon(I, wi, ti, gameTime, groupFired)
   local w = (ti and I:GetWeaponInfoOnTurretOrSpinner(ti, wi)) or I:GetWeaponInfo(wi)
-  if WeaponSystems[w.WeaponSlot] then
+  if WeaponSystems[w.WeaponSlot] and (WeaponSystems[w.WeaponSlot].Type ~= 2 or not groupFired or w.WeaponSlot == groupFired) then
     local ws = WeaponSystems[w.WeaponSlot]
     local tIndex = nil
     for k, t in ipairs(TargetLists[ws.TargetList].PresentTarget) do
@@ -257,10 +261,9 @@ function AimFireWeapon(I, wi, ti, gameTime)
     end
 
     if tIndex and Targets[tIndex] then
-    if tIndex and Targets[tIndex] then
       local selfPos = w.GlobalPosition
       if ws.InheritedMovement then
-        selfPos = selfPos + I:GetVelocityVector() * ws.InheritedMovement)
+        selfPos = selfPos + I:GetVelocityVector() * ws.InheritedMovement
       end
       local tPos = PredictTarget(I, Targets[tIndex].AimPoints[1], Targets[tIndex], selfPos, ws.Speed,
                                  ws.LaunchDelay, ws.SecantInterval or DefaultSecantInterval,
@@ -274,7 +277,7 @@ function AimFireWeapon(I, wi, ti, gameTime)
       end
 
       if ws.WeaponType ~= 4 then
-        local isDelayed = (ws.Stagger) and gameTime < ws.LastFired + ws.Stagger
+        local isDelayed = ws.Stagger and gameTime < ws.LastFired + ws.Stagger
         if not delayed and Vector3.Distance(w.GlobalPosition, tPos) < ws.MaximumRange
            and I:Maths_AngleBetweenVectors(w.CurrentDirection, v) < ws.FiringAngle then
           local fired = (ti and I:FireWeaponOnTurretOrSpinner(ti, wi, w.WeaponSlot))
@@ -282,22 +285,25 @@ function AimFireWeapon(I, wi, ti, gameTime)
           if fired then
             ws.LastFired = gameTime
             Targets[tIndex].NumFired = Targets[tIndex].NumFired + 1
+            groupFired = w.WeaponSlot
           end
         end
       end
     end
   end
+  return groupFired
 end
 
-function GuideMissile(I, ws, trans, mi, gameTime)
-  local mInfo = I:GetLuaControlledMissileInfo(trans, mi)
+function GuideMissile(I, ti, mi, gameTime, groupFired)
+  local mInfo = I:GetLuaControlledMissileInfo(ti, mi)
+  if not Missiles[mInfo.Id] then
+    Missiles[mInfo.Id] = { Flag = Flag, Group = (groupFired or DefaultMissileGroup) }
+  else
+    Missiles[mInfo.Id].Flag = Flag
+  end
+  local m = Missiles[mInfo.Id]
+  local ws = WeaponSystems[m.Group]
   if mInfo.TimeSinceLaunch < ws.Endurance then
-    if not Missiles[mInfo.Id] then
-      Missiles[mInfo.Id] = { Flag = Flag }
-    else
-      Missiles[mInfo.Id].Flag = Flag
-    end
-    local m = Missiles[mInfo.Id]
     if m.Target == nil or Targets[m.Target] == nil then
       local best = 99999
       local bestIndex = 1
@@ -365,7 +371,7 @@ function GuideMissile(I, ws, trans, mi, gameTime)
       local aimPoint = target.AimPoints[m.AimPointIndex]
 
       if ws.ProxRadius and Vector3.Distance(aimPoint, mInfo.Position) < ws.ProxRadius then
-        I:DetonateLuaControlledMissile(trans,mi)
+        I:DetonateLuaControlledMissile(ti,mi)
       end
 
       local mSpeed = math.max(Vector3.Magnitude(mInfo.Velocity), ws.Speed)
@@ -375,7 +381,7 @@ function GuideMissile(I, ws, trans, mi, gameTime)
       if ttt > 0.5 and mInfo.Position.y > 3*ws.MinimumCruiseAltitude then
         tPos.y = math.max(tPos.y, ws.MinimumCruiseAltitude)
       end
-      I:SetLuaControlledMissileAimPoint(trans, mi, tPos.x, tPos.y,tPos.z)
+      I:SetLuaControlledMissileAimPoint(ti, mi, tPos.x, tPos.y,tPos.z)
     end
   end
 end
@@ -390,27 +396,21 @@ function Update(I)
 
   UpdateTargets(I, gameTime)
 
+  local groupFired
   -- Aim and fire
   for wi = 0, I:GetWeaponCount() - 1 do
-    AimFireWeapon(I, wi, nil, gameTime)
+    groupFired = AimFireWeapon(I, wi, nil, gameTime, groupFired)
   end
   for ti = 0, I:GetTurretSpinnerCount() - 1 do
     for wi = 0, I:GetWeaponCountOnTurretOrSpinner(ti) - 1 do
-      AimFireWeapon(I, wi, ti, gameTime)
+      groupFired = AimFireWeapon(I, wi, ti, gameTime, groupFired)
     end
   end
 
   -- Guide missiles
-  for wsi = 0, 5 do
-    local ws = WeaponSystems[wsi]
-    if ws and ws.TransceiverIndices then
-      for ind, trans in ipairs(ws.TransceiverIndices) do
-        if I:GetLuaTransceiverInfo(trans).Valid then
-          for mi = 0, I:GetLuaControlledMissileCount(trans) - 1 do
-            GuideMissile(I, ws, trans, mi, gameTime)
-          end
-        end
-      end
+  for ti = 0, I:GetLuaTransceiverCount() - 1 do
+    for mi = 0, I:GetLuaControlledMissileCount(ti) - 1 do
+      GuideMissile(I, ti, mi, gameTime)
     end
   end
 end

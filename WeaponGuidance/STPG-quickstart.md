@@ -8,8 +8,6 @@ TargetBufferSize`, `TTTIterationThreshold`, and `TTTMaxIterations` can be left a
 A target list refines target prioritization by adding hard constraints, such as speed and altitude. You should have a target list for every group of weapons you may want to be targeting something different. For each such group, add an entry to the `TargetLists` table. All fields are required--`MainframeIndex`, `MinimumSpeed`, `MaximumSpeed`, `MinimumAltitude`, `MaximumAltitude`, `MaximumRange`, and `TTT`. To start with, `TTT` should be approximately the time it takes the weapon to travel to its maximum range.
 ## Set up weapons.
 This script controls weapons by weapon group; put all sets of weapons you want it to control together in separate groups.
-## Correlate weapon groups and lua transceivers.
- Only needed if using multiple groups of lua-guided missiles. Load your vehicle into a fresh VD instance and run the [transceiver identification script](https://raw.githubusercontent.com/Blothorn/FTD/master/Utilities/TransceiverIdentification.lua) in a lua block. In a few seconds, it should list all weapon groups with lua transceivers attached and the transceiver indices for each. You will need these for the next step.
 ## Set up weapon groups.
 Each lua-controlled weapon group should have an entry in this table, indexed by the weapon group number. There are many settings here (documented [elsewhere](https://github.com/Blothorn/FTD/blob/master/WeaponGuidance/STPG.md)), but the following are required:
 + `TargetList`: The name of the associated target list.
@@ -20,7 +18,6 @@ Each lua-controlled weapon group should have an entry in this table, indexed by 
 + `Speed`: Generally best to be about 10% below a missile's maximum speed.
 + `LaunchDelay`: The amount of time lost during launch (relative to launching directly at `Speed` pointed toward the intercept point). Will normally be about half a second for direct-fire missiles and 2-3 seconds for vertical launch missiles; it is not important to be exact.
 + `MinimumConvergenceSpeed`: Helps produce sane results when chasing planes faster than the missile. I suggest about `Speed/2`.
-+ `TransceiverIndices`: Only needed if you are using lua transceivers to guide missiles in flight. If you only have one group of lua missiles, you can set this to `'all'`; otherwise, copy in the lists you collected from the previous step (transceiver correlation).
 + `IgnoreSpeed`: Missiles travelling below this speed will no longer receive guidance updates, reducing lag. For most missiles this can be anything below launch speed, although vertical missiles with a long thruster delay may need to be as low as 0.
 + `MinimumCruiseAltitude`: Used to prevent missiles launched near the water and targeting a block below the water from submerging too early. Should usually be quite low (3-5m), but increase it if your missiles are hitting the water too early (and lower it if they cannot make the final turn to the target block).
 + `Stagger` (optional, but useful). The minimum time between weapon controller firings. Use the stagger block to add stagger to the launches from a single missile controller.

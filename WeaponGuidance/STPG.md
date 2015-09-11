@@ -52,7 +52,6 @@ These help the target prediction AI.
 + `InheritedMovement`: Amount of movement inherited from launch vehicle, useful primarily for dumbfire rockets (where it should usually be 1/3). Expressed as seconds of launch vehicle velocity (applied as translation of launcher position)/
 + `MinimumConvergenceSpeed`: A minimum convergence speed when calculating intercept points. Useful for getting missiles to follow a fast target in the hope that he will turn back in range (with higher values sticking closer to a pursuit course), but too high a value will lead to undercorrection in otherwise valid intercept solutions.
 + `ProxRadius`: The distance from the target at which a missile will be manually detonated.
-+ `TransceiverIndices`: The indices of the attached Lua transceivers. These will be wrong if low indices are damaged, but until `GetLuaTransceiverInfo` is fixed I cannot do anything about that. nil controls none; `'all'` controls all extant transceivers.
 + `ignoreSpeed`: The speed below which the missile will not be guided. Reduces lag if missiles are missing.
 + `MinumumCruiseAltitude`: The minimum altitude to travel at when more than 0.5s from the target.
 + `MissilesPerTarget` (optional): The number of missiles to fire at each eligible target.
