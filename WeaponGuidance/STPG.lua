@@ -1,5 +1,5 @@
 --[[
-Weapon guidance AI, version 0.1.0.0
+Weapon guidance AI, version 0.1.1.0
 https://github.com/Blothorn/FTD for further documentation and license.
 --]]
 
@@ -43,8 +43,8 @@ WeaponSystems[1] = {
   Endurance = 5,
   MinimumCruiseAltitude = 3,
   MissilesPerTarget = 2,
-  AttackPatterns = {Vector3(-10,0,0), Vector3(10,0,0)},
-  PatternConvergeTime = 0.5,
+  AttackPatterns = {Vector3(-15,0,0), Vector3(15,0,0)},
+  PatternConvergeTime = 0.3,
   PatternTimeCap = 3,
 }
 
@@ -390,9 +390,11 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
                                       ws.SecantInterval or DefaultSecantInterval,
                                       ws.MinimumConvergenceSpeed)
       if m.AttackPattern then
+	      local tttAdj = m.TTT or ttt
         local q = Quaternion.LookRotation(tPos - mInfo.Position, Vector3(0,1,0))
-        local v = m.AttackPattern * math.min(math.max(0, ttt - ws.PatternConvergeTime), ws.PatternTimeCap)
+        local v = m.AttackPattern * math.min(math.max(0, tttAdj - ws.PatternConvergeTime), ws.PatternTimeCap)
         tPos = tPos + q*v
+	      m.TTT = Vector3.Distance(tPos, mInfo.Position) / mSpeed
       end
       if ttt > 0.5 and mInfo.Position.y < 5*ws.MinimumCruiseAltitude then
         tPos.y = math.max(tPos.y, ws.MinimumCruiseAltitude)
