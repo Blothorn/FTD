@@ -299,6 +299,9 @@ end
 
 function GuideMissile(I, ti, mi, gameTime, groupFired)
   local mInfo = I:GetLuaControlledMissileInfo(ti, mi)
+  if I:IsLuaControlledMissileAnInterceptor(ti,mi) then
+    return
+  end
   if not Missiles[mInfo.Id] then
     Missiles[mInfo.Id] = { Flag = Flag, Group = (groupFired or DefaultMissileGroup) }
     local ws = WeaponSystems[Missiles[mInfo.Id].Group]
