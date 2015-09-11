@@ -57,6 +57,12 @@ These help the target prediction AI.
 + `MissilesPerTarget` (optional): The number of missiles to fire at each eligible target.
 + `MissilesPerLaunch` (optional): The number of missiles launched by each missile controller. Setting this low has no great effect, but may lead to launching more missiles than required.
 
+### Attack pattern settings (all optional, but required if `AttackPatterns` is defined).
+Attack patterns have missiles spread and then converge to the target.
++ `AttackPatterns`: An array of vector offsets to the target position. These will be rotated so that the z axis is in a line from the missile to the intercept point and the y axis is vertical; I suggest keeping z == 0 so the offsets are in the normal plane to the missile's path. Pattern size is multiplied by (time to target) - PatternConvergeTime; in general, slower missiles will want smaller patterns.
++ `PatternConvergeTime`: The time to target by which the missile will be pointing directly at the target. Low values (how low depending on missile agility) will lead to missing the target completely, high values to smaller separation in flight.
++ `PatternTimeCap`: A cap on the value of ttt used to calculate pattern size. Prevents slow, long-range missiles from flying too far off course.
+
 # Implementation notes
 Target prediction uses secant approximations to estimate future target velocity and then uses the law of cosines to calculate an intercept point (finding the time that solves for a triangle given distance to target, angle (from the target's perspective) between the missile or launch point and the target's velocity, and target and projectile speeds).
 

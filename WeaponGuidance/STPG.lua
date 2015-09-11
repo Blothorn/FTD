@@ -29,10 +29,10 @@ WeaponSystems = {}
 WeaponSystems[1] = {
   Type = 2,
   TargetList = 'AA',
-  Stagger = 0.5,
+  Stagger = 0,
   MaximumAltitude = 99999,
   MinimumAltitude = -3,
-  MaximumRange = 800,
+  MaximumRange = 900,
   MinimumRange = 100,
   FiringAngle = 60,
   Speed = 175,
@@ -42,12 +42,14 @@ WeaponSystems[1] = {
   AimPointProportion = 0.5,
   Endurance = 5,
   MinimumCruiseAltitude = 3,
-  MissilesPerTarget = 1,
-  MissilesPerLaunch = 1,
+  MissilesPerTarget = 2,
+  AttackPatterns = {Vector3(-10,0,0), Vector3(10,0,0)},
+  PatternConvergeTime = 0.5,
+  PatternTimeCap = 3,
 }
 
 Flag = 0
-normalized = false
+Normalized = false
 
 DefaultSecantInterval = function(ttt) return math.min(math.ceil(40*ttt/2), 100) end
 
@@ -72,6 +74,7 @@ function Normalize(I)
         ws.AimPointCounter = 1
       end
       if not ws.MissilesPerLaunch then ws.MissilesPerLaunch = 1 end
+      if ws.AttackPatterns then ws.AttackPatternIndex = 1 end
     end
   end
   for k, tl in pairs(TargetLists) do
@@ -298,6 +301,11 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
   local mInfo = I:GetLuaControlledMissileInfo(ti, mi)
   if not Missiles[mInfo.Id] then
     Missiles[mInfo.Id] = { Flag = Flag, Group = (groupFired or DefaultMissileGroup) }
+    local ws = WeaponSystems[Missiles[mInfo.Id].Group]
+    if ws.AttackPatterns then
+      Missiles[mInfo.Id].AttackPattern = ws.AttackPatterns[ws.AttackPatternIndex]
+      ws.AttackPatternIndex = (ws.AttackPatternIndex % #ws.AttackPatterns) + 1
+    end
   else
     Missiles[mInfo.Id].Flag = Flag
   end
@@ -378,7 +386,12 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
       local tPos, ttt = PredictTarget(I, aimPoint, target, mInfo.Position, ws.Speed, 0,
                                       ws.SecantInterval or DefaultSecantInterval,
                                       ws.MinimumConvergenceSpeed)
-      if ttt > 0.5 and mInfo.Position.y > 3*ws.MinimumCruiseAltitude then
+      if m.AttackPattern then
+        local q = Quaternion.LookRotation(tPos - mInfo.Position, Vector3(0,1,0))
+        local v = m.AttackPattern * math.min(math.max(0, ttt - ws.PatternConvergeTime), ws.PatternTimeCap)
+        tPos = tPos + q*v
+      end
+      if ttt > 0.5 and mInfo.Position.y < 5*ws.MinimumCruiseAltitude then
         tPos.y = math.max(tPos.y, ws.MinimumCruiseAltitude)
       end
       I:SetLuaControlledMissileAimPoint(ti, mi, tPos.x, tPos.y,tPos.z)
@@ -388,9 +401,9 @@ end
 
 function Update(I)
   I:ClearLogs()
-  if not normalized then
+  if not Normalized then
     Normalize(I)
-    normalized = true
+    Normalized = true
   end
   local gameTime = I:GetTime()
 
