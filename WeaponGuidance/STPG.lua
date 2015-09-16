@@ -169,7 +169,7 @@ function UpdateTargets(I, gameTime)
       Missiles[i] = nil
     end
   end
-  Flag = (Flag+1) % 2
+  Flag = Flag + 1
 
   -- Update target info
   for tInd = 0, I:GetNumberOfTargets(ami) - 1 do
@@ -233,7 +233,7 @@ function PredictTarget(I, tPos, target, mPos, mSpeed, delay, Interval, minConv)
    local tVel = target.Velocity
    -- Find an initial ttt to find the secant width
    local ttt
-   if Vector3.Distance(mPos, tPos) / mSpeed < 0.75 then
+   if Vector3.Distance(mPos, tPos) / mSpeed > 0.75 then
      ttt = FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
    else
      ttt = 1/40
@@ -248,6 +248,39 @@ function PredictTarget(I, tPos, target, mPos, mSpeed, delay, Interval, minConv)
      end
    end
    return tPos + tVel * (ttt+delay), ttt
+end
+
+function FindAimpoint(aps, target, m, ws)
+  local aps = Targets[m.Target].AimPoints
+  local api
+  if target.AimPoints[m.AimPointIndex] then
+    api = m.AimPointIndex
+  elseif ws.AimPointCounter >= 1 then
+    api = 1
+    ws.AimPointCounter = ws.AimPointCounter - 1 + ws.AimPointProportion
+  else
+    api = target.AimPointIndex + 2
+    target.AimPointIndex = (target.AimPointIndex + 1) % #aps
+    ws.AimPointCounter = ws.AimPointCounter + ws.AimPointProportion
+  end
+  local bestErr = 99999
+
+  for i = 0, #aps - 1 do
+    local api2 = ((api - 1 + i) % (#aps)) + 1
+    local candidate = aps[api2]
+    if candidate.y < ws.MaximumAltitude then
+      if candidate.y > ws.MinimumAltitude then
+        m.AimPointIndex = api2
+        break
+      elseif ws.MinimumAltitude - candidate.y < bestErr then
+        m.AimPointIndex = api2
+        bestErr = ws.MinimumAltitude - candidate.y
+      end
+    elseif candidate.y - ws.MinimumAltitude < bestErr then
+      m.AimPointIndex = api2
+      bestErr = candidate.y - ws.MinimumAltitude
+    end
+  end
 end
 
 function AimFireWeapon(I, wi, ti, gameTime, groupFired)
@@ -271,8 +304,8 @@ function AimFireWeapon(I, wi, ti, gameTime, groupFired)
       local tPos = PredictTarget(I, Targets[tIndex].AimPoints[1], Targets[tIndex], selfPos, ws.Speed,
                                  ws.LaunchDelay, ws.SecantInterval or DefaultSecantInterval,
                                  ws.MinimumConvergenceSpeed)
-
       local v = Vector3.Normalize(tPos - w.GlobalPosition)
+
       if ti then
         I:AimWeaponInDirectionOnTurretOrSpinner(ti, wi, v.x, v.y, v.z, w.WeaponSlot)
       else
@@ -318,11 +351,9 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
     if m.Target == nil or Targets[m.Target] == nil then
       local best = 99999
       local bestIndex = 1
-      local found = false
       for k, t in ipairs(TargetLists[ws.TargetList].PresentTarget) do
         if Targets[t].NumMissiles < ws.MissilesPerTarget then
-          m.Target = t
-          found = true
+          bestIndex = t
           break
         else
           if Targets[t].NumMissiles < best then
@@ -330,10 +361,9 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
             bestIndex = t
           end
         end
-        if not found then
-          m.Target = bestIndex
-        end
       end
+
+      m.Target = bestIndex
       if Targets[m.Target] then
         Targets[m.Target].NumMissiles = Targets[m.Target].NumMissiles + 1
       end
@@ -343,39 +373,9 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
     if target then
       target.Flag = Flag
 
-      local aimPoint = 0
       if not m.AimPointIndex or gameTime > m.ResetTime
          or not target.AimPoints[m.AimPointIndex] then
-        local api = target.AimPointIndex + 2
-        local aps = Targets[m.Target].AimPoints
-        if target.AimPoints[m.AimPointIndex] then
-          api = m.AimPointIndex
-        elseif ws.AimPointCounter >= 1 then
-          api = 1
-          ws.AimPointCounter = ws.AimPointCounter - 1 + ws.AimPointProportion
-        else
-          target.AimPointIndex = (target.AimPointIndex + 1) % #aps
-          ws.AimPointCounter = ws.AimPointCounter + ws.AimPointProportion
-        end
-        local bestErr = 99999
-
-        for i = 0, #aps - 1 do
-          local api2 = ((api - 1 + i) % (#aps)) + 1
-          local candidate = aps[api2]
-          local err = 0
-          if candidate.y < ws.MaximumAltitude then
-            if candidate.y > ws.MinimumAltitude then
-              m.AimPointIndex = api2
-              break
-            elseif ws.MinimumAltitude - candidate.y < bestErr then
-              m.AimPointIndex = api2
-              bestErr = ws.MinimumAltitude - candidate.y
-            end
-          elseif candidate.y - ws.MinimumAltitude < bestErr then
-            m.AimPointIndex = api2
-            bestErr = candidate.y - ws.MinimumAltitude
-          end
-        end
+        FindAimpoint(Targets[m.Target].AimPoints, target, m, ws)
         m.ResetTime = gameTime + 0.25
       end
 
