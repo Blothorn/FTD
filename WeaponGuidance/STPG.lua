@@ -354,7 +354,7 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
       local best = 99999
       local bestIndex = 1
       for k, t in ipairs(TargetLists[ws.TargetList].PresentTarget) do
-        if Targets[t].NumMissiles < ws.MissilesPerTarget then
+        if not ws.MissilesPerTarget or Targets[t].NumMissiles < ws.MissilesPerTarget then
           bestIndex = t
           break
         else
@@ -398,7 +398,7 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
         tPos = tPos + q*v
 	      m.TTT = Vector3.Distance(tPos, mInfo.Position) / mSpeed
       end
-      if ttt > 0.5 and mInfo.Position.y < 5*ws.MinimumCruiseAltitude then
+      if Vector3.Distance(mInfo.Position, tPos) > 1.4 * (mInfo.Position.y - tPos.y) + 30  then
         tPos.y = math.max(tPos.y, ws.MinimumCruiseAltitude)
       end
       I:SetLuaControlledMissileAimPoint(ti, mi, tPos.x, tPos.y,tPos.z)
