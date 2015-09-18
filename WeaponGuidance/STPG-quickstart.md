@@ -2,7 +2,7 @@ Allegedly people find the myriad configuration options obscure and confusing. Th
 
 # Basic configuration
 ## Set up global variables.
-TargetBufferSize`, `TTTIterationThreshold`, and `TTTMaxIterations` can be left at their defaults. For now, set `AimPointMainframeIndex = 0` and `NonAimPointMainframeIndices = nil`; see the section below on aimpoint randomization for how to use these.
+TargetBufferSize`, `TTTIterationThreshold`, and `TTTMaxIterations` can be left at their defaults.
 
 ## Set up target lists.
 A target list refines target prioritization by adding hard constraints, such as speed and altitude. You should have a target list for every group of weapons you may want to be targeting something different. For each such group, add an entry to the `TargetLists` table. All fields are required--`MainframeIndex`, `MinimumSpeed`, `MaximumSpeed`, `MinimumAltitude`, `MaximumAltitude`, `MaximumRange`, and `TTT`. To start with, `TTT` should be approximately the time it takes the weapon to travel to its maximum range.
@@ -25,7 +25,6 @@ Further options are documented in STPG.md.
 I (Blothorn) am often in the semi-official teamspeak evenings and can answer questions. Otherwise, you can ask questions or report problems in the [forum thread](http://www.fromthedepthsgame.com/forum/showthread.php?tid=8960).
 
 # Aimpoint randomization.
-AI mainframes without an aimpoint card installed target random blocks; a pool of such mainframes can thus be used to generate a pool of potential blocks to target, useful for avoiding missile clumping and aimpoint spoofing. To activate this feature:
-+ Add mainframes: I suggest having 1-2 with aimpoint selection and some number without. It is best if the aimpoint selection mainframes are the lowest indices; placing them first normally assures that. You can check indices that by spawning an enemy structure and running [this script](https://raw.githubusercontent.com/Blothorn/FTD/master/Utilities/MainframeIdentification.txt)--aimpoint mainframes will remain constant, others will slowly cycle target blocks.
-+ Set mainframe variables---if following the above advice, set `AimPointMainframeIndex = 0` and `NonAimPointMainframeIndices = {2,3,4,5}` (adjusting for the indices you just identified). With aimpoint mainframes in 0 and 1, the lua will get a true aimpoint even if one of the aimpoint mainframes is destroyed.
+AI mainframes without an aimpoint card installed target random blocks; a pool of such mainframes can thus be used to generate a pool of potential blocks to target, useful for avoiding missile clumping and aimpoint spoofing. Without any attention, this code will randomize over all aimpoints; to focus on the aimpoints, use the following instructions:
++ Add mainframes: I suggest having 1-2 with aimpoint selection and some number without. Put the aimpoint mainframes at the lowest indices (add the aimpoint mainframes, then replace all the others). You can check indices that by spawning an enemy structure and running [this script](https://raw.githubusercontent.com/Blothorn/FTD/master/Utilities/MainframeIdentification.txt)--aimpoint mainframes will remain constant, others will slowly cycle target blocks.
 + Set `AimPointProportion`: this dictates what proportion of missiles will try to target the aimpoint---1 means all, 0 means none. Other missiles will cycle through the targets of the other mainframes, although they will skip targets outside of the weapon group's minimum and maximum altitude (if any potential aimpoints do satisfy them).

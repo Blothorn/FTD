@@ -1,12 +1,10 @@
 --[[
-Weapon guidance AI, version 0.1.1.0
+Weapon guidance AI, version 0.2.1.0
 https://github.com/Blothorn/FTD for further documentation and license.
 --]]
 
 -- Globals
 TargetBufferSize = 120
-AimPointMainframeIndex = 0
-NonAimPointMainframeIndices = nil
 TTTIterationThreshold = 5
 TTTMaxIterations = 4
 
@@ -65,8 +63,8 @@ function Normalize(I)
   for i = 0, 5 do
     if WeaponSystems[i] then
       local ws = WeaponSystems[i]
-      if ws.AimPointProportion > 0 then
       ws.NextFire = -9999
+      if ws.AimPointProportion and ws.AimPointProportion > 0 then
         ws.AimPointCounter = 1
       end
       if ws.AttackPatterns then ws.AttackPatternIndex = 1 end
@@ -95,24 +93,19 @@ function UpdateTargets(I, gameTime)
   -- Find all target locations
   local nmf = I:GetNumberOfMainframes()
   local TargetLocations = {}
-  local ami = (AimPointMainframeIndex < nmf and AimPointMainframeIndex) or 0
 
   -- Aimpoint locations
-  for ti = 0, I:GetNumberOfTargets(ami) - 1 do
-    local t = I:GetTargetInfo(ami,ti)
+  for ti = 0, I:GetNumberOfTargets(0) - 1 do
+    local t = I:GetTargetInfo(0,ti)
     TargetLocations[t.Id] = {t.AimPointPosition}
   end
 
   -- Non-aimpoint locations
-  if NonAimPointMainframeIndices then
-    for k, mfi in ipairs(NonAimPointMainframeIndices) do
-      if mfi < nmf then
-        for ti = 0, I:GetNumberOfTargets(mfi) do
-          local t = I:GetTargetInfo(mfi,ti)
-          if TargetLocations[t.Id] then
-            table.insert(TargetLocations[t.Id], t.AimPointPosition)
-          end
-        end
+  for mfi = 1, nmf - 1 do
+    for ti = 0, I:GetNumberOfTargets(mfi) do
+      local t = I:GetTargetInfo(mfi,ti)
+      if TargetLocations[t.Id] and t.AimPointPosition ~= TargetLocations[t.Id][1] then
+        table.insert(TargetLocations[t.Id], t.AimPointPosition)
       end
     end
   end
@@ -170,8 +163,8 @@ function UpdateTargets(I, gameTime)
   Flag = Flag + 1
 
   -- Update target info
-  for tInd = 0, I:GetNumberOfTargets(ami) - 1 do
-    local t = I:GetTargetInfo(ami, tInd)
+  for tInd = 0, I:GetNumberOfTargets(0) - 1 do
+    local t = I:GetTargetInfo(0, tInd)
     if Targets[t.Id] then
       if not t.Protected then
         Targets[t.Id] = nil

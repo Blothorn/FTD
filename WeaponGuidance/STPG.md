@@ -11,8 +11,6 @@ Because the game scales the number of ticks per second when the game speed is ch
 # Parameter documentation
 ## Globals
 + `TargetBufferSize`: The number of ticks of position information kept. Higher numbers allow greater smoothing (accompanied by slower response to manuevers) at the expense of memory use. 40 ticks = 1 second.
-+ `AimPointMainframeIndex`: A mainframe using aimpoint.
-+ `NonAimPointMainframeIndices`: A mainframe not using aimpoint.
 + `TTTIterationThreshold`: Since secant width depends on time to target, and TTT on the estimated velocity, this code recalculates the TTT and velocity if the previous update changed velocity by more than `TTTIterationThreshold`.
 + `TTTMaxIterations`: The maximum number of such iterations to perform.
 
