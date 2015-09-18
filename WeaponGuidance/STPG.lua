@@ -29,7 +29,6 @@ WeaponSystems = {}
 WeaponSystems[1] = {
   Type = 2,
   TargetList = 'AA',
-  Stagger = 0,
   MaximumAltitude = 99999,
   MinimumAltitude = -3,
   MaximumRange = 900,
@@ -38,11 +37,8 @@ WeaponSystems[1] = {
   Speed = 175,
   LaunchDelay = 0.3,
   MinimumConvergenceSpeed = 150,
-  ProxRadius = nil,
-  AimPointProportion = 0.5,
   Endurance = 5,
   MinimumCruiseAltitude = 3,
-  MissilesPerTarget = 2,
   AttackPatterns = {Vector3(-15,0,0), Vector3(15,0,0)},
   PatternConvergeTime = 0.3,
   PatternTimeCap = 3,
@@ -69,12 +65,14 @@ function Normalize(I)
   for i = 0, 5 do
     if WeaponSystems[i] then
       local ws = WeaponSystems[i]
-      ws.LastFired = -9999
       if ws.AimPointProportion > 0 then
+      ws.NextFire = -9999
         ws.AimPointCounter = 1
       end
-      if not ws.MissilesPerLaunch then ws.MissilesPerLaunch = 1 end
       if ws.AttackPatterns then ws.AttackPatternIndex = 1 end
+      if not ws.Stagger then ws.Stagger = 0 end
+      ws.Fired = 0
+      if not ws.VolleySize then ws.VolleySize = 1 end
     end
   end
   for k, tl in pairs(TargetLists) do
@@ -255,13 +253,18 @@ function FindAimpoint(aps, target, m, ws)
   local api
   if target.AimPoints[m.AimPointIndex] then
     api = m.AimPointIndex
-  elseif ws.AimPointCounter >= 1 then
-    api = 1
-    ws.AimPointCounter = ws.AimPointCounter - 1 + ws.AimPointProportion
+  elseif ws.AimPointProportion then
+    if ws.AimPointCounter >= 1 then
+      api = 1
+      ws.AimPointCounter = ws.AimPointCounter - 1 + ws.AimPointProportion
+    else
+      api = target.AimPointIndex + 2
+      target.AimPointIndex = (target.AimPointIndex + 1) % (#aps - 1)
+      ws.AimPointCounter = ws.AimPointCounter + ws.AimPointProportion
+    end
   else
-    api = target.AimPointIndex + 2
+    api = target.AimPointIndex + 1
     target.AimPointIndex = (target.AimPointIndex + 1) % #aps
-    ws.AimPointCounter = ws.AimPointCounter + ws.AimPointProportion
   end
   local bestErr = 99999
 
@@ -313,13 +316,19 @@ function AimFireWeapon(I, wi, ti, gameTime, groupFired)
       end
 
       if ws.WeaponType ~= 4 then
-        local isDelayed = ws.Stagger and gameTime < ws.LastFired + ws.Stagger
+        local delayed = ws.Stagger and gameTime < ws.NextFire
         if not delayed and Vector3.Distance(w.GlobalPosition, tPos) < ws.MaximumRange
            and I:Maths_AngleBetweenVectors(w.CurrentDirection, v) < ws.FiringAngle then
           local fired = (ti and I:FireWeaponOnTurretOrSpinner(ti, wi, w.WeaponSlot))
                         or I:FireWeapon(wi, w.WeaponSlot)
           if fired then
-            ws.LastFired = gameTime
+            if ws.Stagger then
+              ws.Fired = ws.Fired + 1
+              if ws.Fired >= ws.VolleySize then
+                ws.NextFire = gameTime + ws.Stagger
+                ws.Fired = 0
+              end
+            end
             Targets[tIndex].NumFired = Targets[tIndex].NumFired + 1
             groupFired = w.WeaponSlot
           end

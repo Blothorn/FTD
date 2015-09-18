@@ -33,7 +33,8 @@ To account for the target prioritization card's ambivalence to target direction,
 ### Basic settings
 + `Type`: 0 for lasers, 1 for cannon, 2 for missiles. For turreted weapons, use the weapon type on the turret.
 + `TargetList`: The virtual mainframe that will be used for targetting.
-+ `Stagger`: Minimum time between consecutive firings. Applies per controller (and is thus completely seperate from stagger among the missiles attached to a controller). Defaults to none.
++ `Stagger`: Optional; defaults to 0. Minimum time between volleys firings. Applies per controller (and is thus completely separate from stagger among the missiles attached to a controller). Defaults to none.
++ `VolleySize`: Optional; defaults to 1. The number of missiles to fire each volley (separated by Stagger).
 + `SecantInterval` (optional): `Time -> Int`. The number of ticks over which to average velocity as a function of the time to target. This should usually converge to (0,0); higher values provide more smoothing but are slower to react to changes in direction. Defaults to a sensible value if nil (`math.ceil(40*ttt)`).
 + `AimPointProportion`: The proportion of shots aimed at the aimpoint, rather than a random block. Has no effect unless both `AimPointMainframeIndex` and `NonAimPointMainframeIndices` are accurately populated. What effect this has depends on the weapon system; presently only implemented for guided missiles.
 

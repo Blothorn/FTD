@@ -20,7 +20,7 @@ Each lua-controlled weapon group should have an entry in this table, indexed by 
 + `MinimumConvergenceSpeed`: Helps produce sane results when chasing planes faster than the missile. I suggest about `Speed/2`.
 + `IgnoreSpeed`: Missiles travelling below this speed will no longer receive guidance updates, reducing lag. For most missiles this can be anything below launch speed, although vertical missiles with a long thruster delay may need to be as low as 0.
 + `MinimumCruiseAltitude`: Used to prevent missiles launched near the water and targeting a block below the water from submerging too early. Should usually be quite low (3-5m), but increase it if your missiles are hitting the water too early (and lower it if they cannot make the final turn to the target block).
-+ `Stagger` (optional, but useful). The minimum time between weapon controller firings. Use the stagger block to add stagger to the launches from a single missile controller.
+Further options are documented in STPG.md.
 ## Report problems/bugs.
 I (Blothorn) am often in the semi-official teamspeak evenings and can answer questions. Otherwise, you can ask questions or report problems in the [forum thread](http://www.fromthedepthsgame.com/forum/showthread.php?tid=8960).
 
