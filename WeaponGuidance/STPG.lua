@@ -1,5 +1,5 @@
 --[[
-Weapon guidance AI, version 0.2.1.0
+Weapon guidance AI, version 0.2.1.1
 https://github.com/Blothorn/FTD for further documentation and license.
 --]]
 
@@ -102,7 +102,7 @@ function UpdateTargets(I, gameTime)
 
   -- Non-aimpoint locations
   for mfi = 1, nmf - 1 do
-    for ti = 0, I:GetNumberOfTargets(mfi) do
+    for ti = 0, I:GetNumberOfTargets(mfi) - 1 do
       local t = I:GetTargetInfo(mfi,ti)
       if TargetLocations[t.Id] and t.AimPointPosition ~= TargetLocations[t.Id][1] then
         table.insert(TargetLocations[t.Id], t.AimPointPosition)
