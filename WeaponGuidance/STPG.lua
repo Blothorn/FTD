@@ -1,5 +1,5 @@
 --[[
-Weapon guidance AI, version 0.2.2.0
+Weapon guidance AI, version 0.2.2.1
 https://github.com/Blothorn/FTD for further documentation and license.
 --]]
 
@@ -374,14 +374,13 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
     local target = Targets[m.Target]
     if target then
       target.Flag = Flag
-
-      if not m.AimPointIndex or gameTime > m.ResetTime
+      if m.ResetTime and gameTime > m.ResetTime
          or not target.AimPoints[m.AimPointIndex] then
         FindAimpoint(Targets[m.Target].AimPoints, target, m, ws)
         m.ResetTime = gameTime + 0.25
       end
 
-      local aimPoint = target.AimPoints[m.AimPointIndex]
+      local aimPoint = (m.AimPointIndex and target.AimPoints[m.AimPointIndex]) or target.AimPoints[1]
 
       if ws.ProxRadius and Vector3.Distance(aimPoint, mInfo.Position) < ws.ProxRadius then
         I:DetonateLuaControlledMissile(ti,mi)
@@ -391,15 +390,19 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
       local tPos, ttt = PredictTarget(I, aimPoint, target, mInfo.Position, mSpeed, 0,
                                       ws.SecantInterval or DefaultSecantInterval,
                                       ws.MinimumConvergenceSpeed)
+      if ttt < 1 then m.ResetTime = gameTime end
+      local floor = false
+      if Vector3.Distance(mInfo.Position, tPos) > 1.2 * (mInfo.Position.y - tPos.y) + 50  then
+        tPos.y = math.max(tPos.y, ws.MinimumCruiseAltitude)
+        floor = true
+      end
       if m.AttackPattern then
         local tttAdj = m.TTT or ttt
         local q = Quaternion.LookRotation(tPos - mInfo.Position, Vector3(0,1,0))
         local v = m.AttackPattern * math.min(math.max(0, tttAdj - ws.PatternConvergeTime), ws.PatternTimeCap)
         tPos = tPos + q*v
+        if floor then tPos.y = math.max(tPos.y, ws.MinimumCruiseAltitude) end
         m.TTT = Vector3.Distance(tPos, mInfo.Position) / mSpeed
-      end
-      if Vector3.Distance(mInfo.Position, tPos) > 1.2 * (mInfo.Position.y - tPos.y) + 50  then
-        tPos.y = math.max(tPos.y, ws.MinimumCruiseAltitude)
       end
       I:SetLuaControlledMissileAimPoint(ti, mi, tPos.x, tPos.y,tPos.z)
     end
