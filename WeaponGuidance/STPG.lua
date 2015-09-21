@@ -38,7 +38,7 @@ WeaponSystems[1] = {
   Endurance = 5,
   MinimumCruiseAltitude = 3,
   AttackPatterns = {Vector3(-15,0,0), Vector3(15,0,0)},
-  PatternConvergeTime = 0.3,
+  PatternConvergeTime = 0.8,
   PatternTimeCap = 3,
 }
 
