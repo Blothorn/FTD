@@ -1,5 +1,5 @@
 --[[
-Weapon guidance AI, version 0.2.1.2
+Weapon guidance AI, version 0.2.2.0
 https://github.com/Blothorn/FTD for further documentation and license.
 --]]
 
@@ -285,7 +285,7 @@ function AimFireWeapon(I, wi, ti, gameTime, groupFired)
     local ws = WeaponSystems[w.WeaponSlot]
     local tIndex = nil
     for k, t in ipairs(TargetLists[ws.TargetList].PresentTarget) do
-      if not ws.MissilesPerTarget
+      if not (ws.LimitFire and ws.MissilesPerTarget)
          or Targets[t].NumMissiles + Targets[t].NumFired < ws.MissilesPerTarget then
         tIndex = t
         break
