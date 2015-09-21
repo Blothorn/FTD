@@ -1,5 +1,5 @@
 --[[
-Weapon guidance AI, version 0.2.1.1
+Weapon guidance AI, version 0.2.1.2
 https://github.com/Blothorn/FTD for further documentation and license.
 --]]
 
@@ -388,17 +388,17 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
       end
 
       local mSpeed = math.max(Vector3.Magnitude(mInfo.Velocity), ws.Speed)
-      local tPos, ttt = PredictTarget(I, aimPoint, target, mInfo.Position, ws.Speed, 0,
+      local tPos, ttt = PredictTarget(I, aimPoint, target, mInfo.Position, mSpeed, 0,
                                       ws.SecantInterval or DefaultSecantInterval,
                                       ws.MinimumConvergenceSpeed)
       if m.AttackPattern then
-	      local tttAdj = m.TTT or ttt
+        local tttAdj = m.TTT or ttt
         local q = Quaternion.LookRotation(tPos - mInfo.Position, Vector3(0,1,0))
         local v = m.AttackPattern * math.min(math.max(0, tttAdj - ws.PatternConvergeTime), ws.PatternTimeCap)
         tPos = tPos + q*v
-	      m.TTT = Vector3.Distance(tPos, mInfo.Position) / mSpeed
+        m.TTT = Vector3.Distance(tPos, mInfo.Position) / mSpeed
       end
-      if Vector3.Distance(mInfo.Position, tPos) > 1.4 * (mInfo.Position.y - tPos.y) + 30  then
+      if Vector3.Distance(mInfo.Position, tPos) > 1.2 * (mInfo.Position.y - tPos.y) + 50  then
         tPos.y = math.max(tPos.y, ws.MinimumCruiseAltitude)
       end
       I:SetLuaControlledMissileAimPoint(ti, mi, tPos.x, tPos.y,tPos.z)
