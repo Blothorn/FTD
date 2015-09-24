@@ -1,5 +1,5 @@
 --[[
-Weapon guidance AI, version 0.2.2.1
+Weapon guidance AI, version 0.2.2.2
 https://github.com/Blothorn/FTD for further documentation and license.
 --]]
 
@@ -243,6 +243,7 @@ end
 
 function FindAimpoint(aps, target, m, ws)
   local aps = Targets[m.Target].AimPoints
+  if #aps == 1 then m.AimPointIndex = 1; return end
   local api
   if target.AimPoints[m.AimPointIndex] then
     api = m.AimPointIndex
