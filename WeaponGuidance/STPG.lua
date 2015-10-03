@@ -15,7 +15,17 @@ TargetLists = {
     MaximumSpeed = 350,
     MinimumAltitude = -5,
     MaximumAltitude = 99999,
-    MaximumRange = 1200,
+    MaximumRange = 1100,
+    TTT = 5,
+    Depth = 2,
+  },
+  General = {
+    MainframeIndex = 1,
+    MinimumSpeed = 0,
+    MaximumSpeed = 200,
+    MinimumAltitude = -5,
+    MaximumAltitude = 99999,
+    MaximumRange = 1300,
     TTT = 5,
     Depth = 2,
   }
@@ -23,7 +33,7 @@ TargetLists = {
 
 WeaponSystems = {}
 
--- Sample configuration (Dart AA thumpers)
+-- Sample configuration
 WeaponSystems[1] = {
   Type = 2,
   TargetList = 'AA',
@@ -32,13 +42,28 @@ WeaponSystems[1] = {
   MaximumRange = 900,
   MinimumRange = 100,
   FiringAngle = 60,
-  Speed = 175,
+  Speed = 250,
   LaunchDelay = 0.3,
   MinimumConvergenceSpeed = 150,
   Endurance = 5,
-  MinimumCruiseAltitude = 3,
+  MinimumCruiseAltitude = 5,
+}
+
+WeaponSystems[1] = {
+  Type = 2,
+  TargetList = 'General',
+  MaximumAltitude = 99999,
+  MinimumAltitude = -3,
+  MaximumRange = 1200,
+  MinimumRange = 100,
+  FiringAngle = 60,
+  Speed = 150,
+  LaunchDelay = 0.3,
+  MinimumConvergenceSpeed = 100,
+  Endurance = 10,
+  MinimumCruiseAltitude = 5,
   AttackPatterns = {Vector3(-15,0,0), Vector3(15,0,0)},
-  PatternConvergeTime = 0.8,
+  PatternConvergeTime = 1,
   PatternTimeCap = 3,
 }
 
