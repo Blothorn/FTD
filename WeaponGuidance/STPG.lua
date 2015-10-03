@@ -322,8 +322,12 @@ end
 
 function AimFireWeapon(I, wi, ti, gameTime, groupFired)
   local w = (ti and I:GetWeaponInfoOnTurretOrSpinner(ti, wi)) or I:GetWeaponInfo(wi)
-  if WeaponSystems[w.WeaponSlot] and (WeaponSystems[w.WeaponSlot].Type ~= 2 or not groupFired or w.WeaponSlot == groupFired) then
+  if WeaponSystems[w.WeaponSlot] then
     local ws = WeaponSystems[w.WeaponSlot]
+    if (groupFired and (ws.Type == 2 and w.WeaponSlot ~= groupFired) 
+       or w.WeaponType ~= 4 and ws.Stagger and gameTime < ws.NextFire then
+      return
+    end
     local tIndex = nil
     for k, t in ipairs(TargetLists[ws.TargetList].PresentTarget) do
       if not (ws.LimitFire and ws.MissilesPerTarget)
@@ -349,7 +353,7 @@ function AimFireWeapon(I, wi, ti, gameTime, groupFired)
         I:AimWeaponInDirection(wi, v.x, v.y, v.z, w.WeaponSlot)
       end
 
-      if ws.WeaponType ~= 4 then
+      if w.WeaponType ~= 4 then
         local delayed = ws.Stagger and gameTime < ws.NextFire
         if not delayed and Vector3.Distance(w.GlobalPosition, tPos) < ws.MaximumRange
            and I:Maths_AngleBetweenVectors(w.CurrentDirection, v) < ws.FiringAngle then
