@@ -1,12 +1,12 @@
 --[[
-Weapon guidance AI, version 0.2.2.2
+Weapon guidance AI, version 1.0.0.0
 https://github.com/Blothorn/FTD for further documentation and license.
 --]]
 
 -- Globals
 TargetBufferSize = 120
-TTTIterationThreshold = 5
-TTTMaxIterations = 4
+ConvergenceIterationThreshold = 0.005
+ConvergenceMaxIterations = 25
 
 TargetLists = {
   AA = {
@@ -70,7 +70,7 @@ WeaponSystems[1] = {
 Flag = 0
 Normalized = false
 
-DefaultSecantInterval = function(ttt) return math.min(math.ceil(40*ttt/2), 100) end
+DefaultSecantInterval = function(ttt) return math.max(math.min(math.ceil(40*ttt/2), 100), 1) end
 
 -- Target buffers
 Targets = {}
@@ -214,7 +214,8 @@ end
 -- I -> Position -> Time -> Velocity
 function PredictVelocity(I, target, interval)
   -- Calculate the interval to use
-  interval = (target.Wrapped == 0 and (target.Index-1)) or math.min(interval, TargetBufferSize-1)
+  interval = math.min(interval, (target.Wrapped == 0 and (target.Index - 1))
+                                or TargetBufferSize - 1)
 
   local velocity = target.Velocity
   if interval > 0 then
@@ -225,45 +226,59 @@ function PredictVelocity(I, target, interval)
    return velocity
 end
 
-function FindConvergence(I, tPos, tVel, wPos, wSpeed, delay, minConv)
-   local relativePosition = wPos - tPos
-   local distance = Vector3.Magnitude(relativePosition)
-   local targetAngle = I:Maths_AngleBetweenVectors(relativePosition, tVel)
-   local tSpeed = Vector3.Magnitude(tVel)
-
-   local a = tSpeed^2 - wSpeed^2
-   local b = -2 * tSpeed * distance * math.cos(math.rad(targetAngle))
-   local c = distance^2
-   local det = math.sqrt(b^2-4*a*c)
-   local ttt = distance / minConv
-
-   if det > 0 then
-      local root1 = math.min((-b + det)/(2*a), (-b - det)/(2*a))
-      local root2 = math.max((-b + det)/(2*a), (-b - det)/(2*a))
-      ttt = (root1 > 0 and root1) or (root2 > 0 and root2) or ttt
-   end
-   return ttt
+function PredictTarget(I, guess, tPos, target, wPos, wSpeed, delay, Interval, minConv)
+  local relativePosition = tPos - wPos
+  local distance = Vector3.Magnitude(relativePosition)
+  local x0
+  local fx0
+  
+  for i = 1, ConvergenceMaxIterations do
+    local tVel = PredictVelocity(I, target, Interval(guess))
+    predictedDistance = math.sqrt((relativePosition.x + tVel.x*guess)^2
+                                  + (relativePosition.y + tVel.y*guess)^2
+                                  + (relativePosition.z + tVel.z*guess)^2)
+    local new = (predictedDistance / wSpeed) + delay
+    if math.abs(new - guess) < ConvergenceIterationThreshold then
+      guess = math.min(guess, distance / minConv)
+      return tPos + tVel * guess, guess
+    end
+    local x1 = guess
+    local fx1 = guess - new
+    if i == 1 then
+      local a = math.min(1, wSpeed / Vector3.Magnitude(tVel))
+      guess = (a * new + (1-a) * guess);
+    else
+      guess = x1 - fx1 * (x1 - x0) / (fx1 - fx0)
+    end
+    x0 = x1
+    fx0 = fx1
+  end
+  -- Fallthrough
+  I:Log('Falling through')
+  local guess = distance / minConv
+  return tPos + PredictVelocity(I, target, Interval(guess)) * guess, guess
 end
 
-function PredictTarget(I, tPos, target, mPos, mSpeed, delay, Interval, minConv)
-   local tVel = target.Velocity
-   -- Find an initial ttt to find the secant width
-   local ttt
-   if Vector3.Distance(mPos, tPos) / mSpeed > 0.75 then
-     ttt = FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
-   else
-     ttt = 1/40
-   end
-   for i = 1, TTTMaxIterations do
-     local oldVel = tVel
-     tVel = PredictVelocity(I, target, Interval(ttt+delay))
-     -- Use the secant velocity to refine the TTT guess
-     ttt = FindConvergence(I, tPos, tVel, mPos, mSpeed, delay, minConv)
-     if Vector3.Distance(oldVel, tVel) < TTTIterationThreshold then
-       break
-     end
-   end
-   return tPos + tVel * (ttt+delay), ttt
+function PredictTarget(I, guess, tPos, target, wPos, wSpeed, delay, Interval, minConv)
+  local relativePosition = tPos - wPos
+  local distance = Vector3.Magnitude(relativePosition)
+  
+  for i = 0, ConvergenceMaxIterations do
+    local tVel = PredictVelocity(I, target, Interval(guess))
+    predictedDistance = math.sqrt((relativePosition.x + tVel.x*guess)^2
+                                  + (relativePosition.y + tVel.y*guess)^2
+                                  + (relativePosition.z + tVel.z*guess)^2)
+    local new = (predictedDistance / wSpeed) + delay
+    if math.abs(new - guess) < ConvergenceIterationThreshold then
+      return tPos + tVel * guess, guess
+    else
+      local a = math.min(1, wSpeed / Vector3.Magnitude(tVel))
+      guess = (a * new + (1-a) * guess)
+    end
+  end
+  -- Fallthrough
+  local guess = distance / minConv
+  return tPos + PredictVelocity(I, target, Interval(guess)) * guess, guess
 end
 
 function FindAimpoint(aps, target, m, ws)
@@ -323,7 +338,7 @@ function AimFireWeapon(I, wi, ti, gameTime, groupFired)
       if ws.InheritedMovement then
         selfPos = selfPos + I:GetVelocityVector() * ws.InheritedMovement
       end
-      local tPos = PredictTarget(I, Targets[tIndex].AimPoints[1], Targets[tIndex], selfPos, ws.Speed,
+      local tPos = PredictTarget(I, 0, Targets[tIndex].AimPoints[1], Targets[tIndex], selfPos, ws.Speed,
                                  ws.LaunchDelay, ws.SecantInterval or DefaultSecantInterval,
                                  ws.MinimumConvergenceSpeed)
       local v = Vector3.Normalize(tPos - w.GlobalPosition)
@@ -413,7 +428,7 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
       end
 
       local mSpeed = math.max(Vector3.Magnitude(mInfo.Velocity), ws.Speed)
-      local tPos, ttt = PredictTarget(I, aimPoint, target, mInfo.Position, mSpeed, 0,
+      local tPos, ttt = PredictTarget(I, 0, aimPoint, target, mInfo.Position, mSpeed, 0,
                                       ws.SecantInterval or DefaultSecantInterval,
                                       ws.MinimumConvergenceSpeed)
       if ttt < 1 then m.ResetTime = gameTime end
