@@ -49,7 +49,7 @@ WeaponSystems[1] = {
   MinimumCruiseAltitude = 5,
 }
 
-WeaponSystems[1] = {
+WeaponSystems[2] = {
   Type = 2,
   TargetList = 'General',
   MaximumAltitude = 99999,
@@ -324,8 +324,8 @@ function AimFireWeapon(I, wi, ti, gameTime, groupFired)
   local w = (ti and I:GetWeaponInfoOnTurretOrSpinner(ti, wi)) or I:GetWeaponInfo(wi)
   if WeaponSystems[w.WeaponSlot] then
     local ws = WeaponSystems[w.WeaponSlot]
-    if (groupFired and (ws.Type == 2 and w.WeaponSlot ~= groupFired) 
-       or w.WeaponType ~= 4 and ws.Stagger and gameTime < ws.NextFire then
+    if (groupFired and (ws.Type == 2 and w.WeaponSlot ~= groupFired)) 
+       or (w.WeaponType ~= 4 and ws.Stagger and gameTime < ws.NextFire) then
       return
     end
     local tIndex = nil
@@ -429,6 +429,7 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
 
       if ws.ProxRadius and Vector3.Distance(aimPoint, mInfo.Position) < ws.ProxRadius then
         I:DetonateLuaControlledMissile(ti,mi)
+        return
       end
 
       local mSpeed = math.max(Vector3.Magnitude(mInfo.Velocity), ws.Speed)
