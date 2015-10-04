@@ -1,5 +1,5 @@
 --[[
-Weapon guidance AI, version 1.0.0.0
+Weapon guidance AI, version 1.0.0.1
 https://github.com/Blothorn/FTD for further documentation and license.
 --]]
 
@@ -396,6 +396,7 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
   local ws = WeaponSystems[m.Group]
   if mInfo.TimeSinceLaunch < ws.Endurance then
     if m.Target == nil or Targets[m.Target] == nil then
+      m.TTT = nil
       local best = 99999
       local bestIndex = 1
       for k, t in ipairs(TargetLists[ws.TargetList].PresentTarget) do
