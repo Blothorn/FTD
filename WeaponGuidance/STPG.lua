@@ -433,9 +433,10 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
       end
 
       local mSpeed = math.max(Vector3.Magnitude(mInfo.Velocity), ws.Speed)
-      local tPos, ttt = PredictTarget(I, 0, aimPoint, target, mInfo.Position, mSpeed, 0,
+      local tPos, ttt = PredictTarget(I, m.TTT or 0, aimPoint, target, mInfo.Position, mSpeed, 0,
                                       ws.SecantInterval or DefaultSecantInterval,
                                       ws.MinimumConvergenceSpeed)
+      m.TTT = ttt - 1/40
       if ttt < 1 then m.ResetTime = gameTime end
       local floor = false
       if Vector3.Distance(mInfo.Position, tPos) > 1.2 * (mInfo.Position.y - tPos.y) + 50  then
@@ -443,12 +444,12 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
         floor = true
       end
       if m.AttackPattern then
-        local tttAdj = m.TTT or ttt
+        local tttAdj = m.TTTadj or ttt
         local q = Quaternion.LookRotation(tPos - mInfo.Position, Vector3(0,1,0))
         local v = m.AttackPattern * math.min(math.max(0, tttAdj - ws.PatternConvergeTime), ws.PatternTimeCap)
         tPos = tPos + q*v
         if floor then tPos.y = math.max(tPos.y, ws.MinimumCruiseAltitude) end
-        m.TTT = Vector3.Distance(tPos, mInfo.Position) / mSpeed
+        m.TTTadj = Vector3.Distance(tPos, mInfo.Position) / mSpeed
       end
       I:SetLuaControlledMissileAimPoint(ti, mi, tPos.x, tPos.y,tPos.z)
     end
