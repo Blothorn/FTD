@@ -1,5 +1,5 @@
 --[[
-Weapon guidance AI, version 1.0.0.1
+Weapon guidance AI, version 1.0.1.0
 https://github.com/Blothorn/FTD for further documentation and license.
 --]]
 
@@ -47,6 +47,7 @@ WeaponSystems[1] = {
   MinimumConvergenceSpeed = 150,
   Endurance = 5,
   MinimumCruiseAltitude = 5,
+  DetonateOnCull = true,
 }
 
 WeaponSystems[2] = {
@@ -65,6 +66,7 @@ WeaponSystems[2] = {
   AttackPatterns = {Vector3(-15,0,0), Vector3(15,0,0)},
   PatternConvergeTime = 1,
   PatternTimeCap = 3,
+  DetonateOnCull = true,
 }
 
 Flag = 0
@@ -394,7 +396,9 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
   end
   local m = Missiles[mInfo.Id]
   local ws = WeaponSystems[m.Group]
-  if mInfo.TimeSinceLaunch < ws.Endurance then
+  if mInfo.TimeSinceLaunch > ws.Endurance then
+    if ws.DetonateOnCull then I:DetonateLuaControlledMissile(ti,mi) end
+  else
     if m.Target == nil or Targets[m.Target] == nil then
       m.TTT = nil
       local best = 99999

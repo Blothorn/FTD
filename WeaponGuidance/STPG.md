@@ -55,6 +55,7 @@ These help the target prediction AI.
 + `MinumumCruiseAltitude`: The minimum altitude to travel at when more than 0.5s from the target.
 + `MissilesPerTarget` (optional): The number of missiles to fire at each eligible target.
 + `LimitFire`: Optional, defaults to false. Whether to restrict the number of missiles fired if `MissilesPerTarget` missiles have already been fired at each eligible target.
++ `DetonateOnCull`: Whether to detonate the missile when its endurance is exceeded (to reduce lag).
 
 ### Attack pattern settings (all optional, but required if `AttackPatterns` is defined).
 Attack patterns have missiles spread and then converge to the target.
