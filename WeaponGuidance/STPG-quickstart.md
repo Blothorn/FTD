@@ -1,3 +1,5 @@
+OUT OF DATE! Use the sample configuration and documentation for now, I plan to update this eventually.
+
 Allegedly people find the myriad configuration options obscure and confusing. This covers the minimum setup required to get weapons working, with separate sections on advanced topics. I assume basic familiarity with lua syntax.
 
 # Basic configuration
@@ -13,7 +15,7 @@ Each lua-controlled weapon group should have an entry in this table, indexed by 
 + `TargetList`: The name of the associated target list.
 + `AimPointProportion`: Set to 1 for now (see the aimpoint randomization section for details).
 + `MinimumAltitude`/`MaximumAltitude`: Set to large negative/positive numbers if you want to ignore. These are primarily used in aimpoint randomization.
-+ `MinimumRange`/`MaximumRange`: These control the actual firing decision.
++ `MinimumRange`: These control the actual firing decision.
 + `FiringAngle`: Set to 180 for vertical launch missiles.
 + `Speed`: Generally best to be about 10% below a missile's maximum speed.
 + `LaunchDelay`: The amount of time lost during launch (relative to launching directly at `Speed` pointed toward the intercept point). Will normally be about half a second for direct-fire missiles and 2-3 seconds for vertical launch missiles; it is not important to be exact.
