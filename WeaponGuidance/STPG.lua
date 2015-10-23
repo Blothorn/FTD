@@ -462,6 +462,8 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
   end
 end
 
+LastUpdate = -999999
+
 function Update(I)
   I:ClearLogs()
   if not Normalized then
@@ -469,6 +471,11 @@ function Update(I)
     Normalized = true
   end
   local gameTime = I:GetTime()
+  if gameTime < LastUpdate + 0.024 then
+    return
+  else
+    LastUpdate = gameTime
+  end
 
   UpdateTargets(I, gameTime)
 
