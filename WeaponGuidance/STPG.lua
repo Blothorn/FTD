@@ -1,5 +1,5 @@
 --[[
-Weapon guidance AI, version 1.0.1.0
+Weapon guidance AI, version 2.0.0.0
 https://github.com/Blothorn/FTD for further documentation and license.
 --]]
 
@@ -8,71 +8,36 @@ TargetBufferSize = 120
 ConvergenceIterationThreshold = 0.005
 ConvergenceMaxIterations = 25
 
-TargetLists = {
-  AA = {
-    MainframeIndex = 0,
-    MinimumSpeed = 0,
-    MaximumSpeed = 350,
-    MinimumAltitude = -5,
-    MaximumAltitude = 99999,
-    MaximumRange = 1100,
-    TTT = 5,
-    Depth = 2,
-  },
-  General = {
-    MainframeIndex = 1,
-    MinimumSpeed = 0,
-    MaximumSpeed = 200,
-    MinimumAltitude = -5,
-    MaximumAltitude = 99999,
-    MaximumRange = 1300,
-    TTT = 5,
-    Depth = 2,
-  }
-}
-
 WeaponSystems = {}
 
 -- Sample configuration
 WeaponSystems[1] = {
   Type = 2,
-  TargetList = 'AA',
+  MainframeIndex = 0,
   MaximumAltitude = 99999,
   MinimumAltitude = -3,
-  MaximumRange = 900,
+  MinimumSpeed = 0,
+  MaximumSpeed = 350,
   MinimumRange = 100,
   FiringAngle = 60,
   Speed = 250,
   LaunchDelay = 0.3,
   MinimumConvergenceSpeed = 150,
-  Endurance = 5,
+  Endurance = 3.33,
   MinimumCruiseAltitude = 5,
+  MaximumCruiseAltitude = 9999,
   DetonateOnCull = true,
-}
-
-WeaponSystems[2] = {
-  Type = 2,
-  TargetList = 'General',
-  MaximumAltitude = 99999,
-  MinimumAltitude = -3,
-  MaximumRange = 1200,
-  MinimumRange = 100,
-  FiringAngle = 60,
-  Speed = 150,
-  LaunchDelay = 0.3,
-  MinimumConvergenceSpeed = 100,
-  Endurance = 10,
-  MinimumCruiseAltitude = 5,
-  AttackPatterns = {Vector3(-15,0,0), Vector3(15,0,0)},
-  PatternConvergeTime = 1,
-  PatternTimeCap = 3,
-  DetonateOnCull = true,
+  MaximumTargets = 2,
+  TurnSpeed = 100,
+  Direction = 'Forward',
 }
 
 Flag = 0
 Normalized = false
 
-DefaultSecantInterval = function(ttt) return math.max(math.min(math.ceil(40*ttt/2), 100), 1) end
+DefaultSecantInterval = function(ttt)
+  return math.max(math.min(math.ceil(40*ttt/2), 100), 1)
+end
 
 -- Target buffers
 Targets = {}
@@ -83,6 +48,11 @@ for i = 0, 5 do
     DefaultMissileGroup = i
     break
   end
+end
+
+function Angle(a, b)
+  return math.deg(math.acos(Vector3.Dot(a, b)
+                            / (Vector3.Magnitude(a) * Vector3.Magnitude(b))))
 end
 
 -- Normalize weapon configuration
@@ -98,22 +68,50 @@ function Normalize(I)
       if not ws.Stagger then ws.Stagger = 0 end
       ws.Fired = 0
       if not ws.VolleySize then ws.VolleySize = 1 end
+      if not ws.MaximumTargets then ws.MaximumTargets = 1 end
+      if not ws.LaunchEndurance then
+        ws.LaunchEndurance = ws.Endurance - 0.5
+      end
+      if not ws.TargetEndurance then
+        ws.TargetEndurance = ws.LaunchEndurance
+      end
+      if not ws.CullTime then
+        ws.CullTime = ws.Endurance + 0.5
+      end
+      if not ws.SecantInterval then
+  ws.SecantInterval = DefaultSecantInterval
+      end
     end
-  end
-  for k, tl in pairs(TargetLists) do
-    if not tl.Depth then tl.Depth = 1 end
   end
 end
 
-function NewTarget(I)
+function NewTarget(I, v)
   return {
     AimPoints = {},
     Index = 0,
-    Wrapped = 0,
     AimPointIndex = 0,
     NumMissiles = 0,
     NumFired = 0,
+    Velocity = v,
   }
+end
+
+function Direction(d)
+  if not Direction then
+    return nil
+  elseif Direction == 'Forward' then
+    return I:GetConstructForwardVector()
+  elseif Direction == 'Backward' then
+    return -I:GetConstructForwardVector()
+  elseif Direction == 'Up' then
+    return I:GetconstructUpVector()
+  elseif Direction == 'Down' then
+    return -I:GetconstructUpVector()
+  elseif Direction == 'Left' then
+    return -I:GetconstructLeftVector()
+  elseif Direction == 'Right' then
+    return I:GetconstructRightVector()
+  end
 end
 
 function UpdateTargets(I, gameTime)
@@ -131,41 +129,50 @@ function UpdateTargets(I, gameTime)
   for mfi = 1, nmf - 1 do
     for ti = 0, I:GetNumberOfTargets(mfi) - 1 do
       local t = I:GetTargetInfo(mfi,ti)
-      if TargetLocations[t.Id] and t.AimPointPosition ~= TargetLocations[t.Id][1] then
+      if TargetLocations[t.Id]
+         and t.AimPointPosition ~= TargetLocations[t.Id][1] then
         table.insert(TargetLocations[t.Id], t.AimPointPosition)
       end
     end
   end
 
+  local ownPos = I:GetConstructCenterOfMass()
   -- Find priority targets
-  for tli, tl in pairs(TargetLists) do
-    local m = (tl.MainframeIndex < nmf and tl.MainframeIndex) or 0
+  for wsi = 0, 5 do
+    local ws = WeaponSystems[wsi]
+    if ws then
+      local m = (ws.MainframeIndex < nmf and ws.MainframeIndex) or 0
 
-    -- Find qualifying target
-    tl.PresentTarget = {}
-    local num = 1
-    for tInd = 0, I:GetNumberOfTargets(m) - 1 do
-       local t = I:GetTargetInfo(m,tInd)
-       local speed = Vector3.Magnitude(t.Velocity)
-       local interceptPoint = t.Position + t.Velocity * tl.TTT
-       if t.Protected and TargetLocations[t.Id]
-         and (speed >= tl.MinimumSpeed) and (speed < tl.MaximumSpeed)
-         and (Vector3.Distance(I:GetConstructPosition(), interceptPoint) < tl.MaximumRange) then
-        local found = false
-        for k, p in ipairs(TargetLocations[t.Id]) do
-          if (p.y > tl.MinimumAltitude) and (p.y < tl.MaximumAltitude) then
-            found = true
-            break
+      -- Find qualifying target
+      ws.PresentTargets = {}
+      local num = 1
+      for tInd = 0, I:GetNumberOfTargets(m) - 1 do
+        local t = I:GetTargetInfo(m,tInd)
+        local speed = Vector3.Magnitude(t.Velocity)
+        local tPos, ttt =
+          PredictTarget(I, 0, t.Position,
+                        Targets[t.Id] or {Velocity = t.Velocity, Index = 0},
+                        ownPos, ws.Speed, ws.LaunchDelay, ws.SecantInterval, 1,
+                        Direction(ws.Angle), ws.TurnSpeed)
+        if t.Protected and TargetLocations[t.Id]
+           and (speed >= ws.MinimumSpeed) and (speed < ws.MaximumSpeed)
+           and ttt < ws.TargetEndurance then
+          local found = false
+          for k, p in ipairs(TargetLocations[t.Id]) do
+            if (p.y > ws.MinimumAltitude) and (p.y < ws.MaximumAltitude) then
+              found = true
+              break
+            end
           end
-        end
-        if found then
-          tl.PresentTarget[num] = t.Id
-          if not Targets[t.Id] then
-            Targets[t.Id] = NewTarget(I)
+          if found then
+            ws.PresentTargets[num] = t.Id
+            if not Targets[t.Id] then
+              Targets[t.Id] = NewTarget(I, t.Velocity)
+            end
+            Targets[t.Id].Flag = Flag
+            num = num + 1
+            if num > ws.MaximumTargets then break end
           end
-          Targets[t.Id].Flag = Flag
-          num = num + 1
-          if num > tl.Depth then break end
         end
       end
     end
@@ -202,7 +209,7 @@ function UpdateTargets(I, gameTime)
           tar.Index = tar.Index + 1
         else
           tar.Index = 1
-          tar.Wrapped = 1
+          tar.Wrapped = true
         end
 
         tar.Velocity = t.Velocity
@@ -216,30 +223,30 @@ end
 -- I -> Position -> Time -> Velocity
 function PredictVelocity(I, target, interval)
   -- Calculate the interval to use
-  interval = math.min(interval, (target.Wrapped == 0 and (target.Index - 1))
+  interval = math.min(interval, ((not target.Wrapped) and (target.Index - 1))
                                 or TargetBufferSize - 1)
-
-  local velocity = target.Velocity
   if interval > 0 then
     -- Use secant approximation to smooth
       local oldPos = target[((target.Index - interval) % TargetBufferSize) + 1]
-      velocity = (target[target.Index] - oldPos) * (40 / interval)
-   end
-   return velocity
+      return (target[target.Index] - oldPos) * (40 / interval)
+   else
+     return target.Velocity
+  end
 end
 
-function PredictTarget(I, guess, tPos, target, wPos, wSpeed, delay, Interval, minConv)
-  local relativePosition = tPos - wPos
-  local distance = Vector3.Magnitude(relativePosition)
+function PredictTarget(I, guess, tPos, target, wPos, wSpeed, delay, Interval,
+           minConv, heading, turnSpeed)
+  local relativePos = tPos - wPos
+  local distance = Vector3.Magnitude(relativePos)
   local x0
   local fx0
-  
+
   for i = 1, ConvergenceMaxIterations do
     local tVel = PredictVelocity(I, target, Interval(guess))
-    predictedDistance = math.sqrt((relativePosition.x + tVel.x*guess)^2
-                                  + (relativePosition.y + tVel.y*guess)^2
-                                  + (relativePosition.z + tVel.z*guess)^2)
-    local new = (predictedDistance / wSpeed) + delay
+    local predictedPos = relativePos + tVel * guess
+    local turnTime = (not heading and 0)
+                     or Angle(heading, predictedPos) / turnSpeed
+    local new = Vector3.Magnitude(predictedPos) / wSpeed + delay + turnTime
     if math.abs(new - guess) < ConvergenceIterationThreshold then
       guess = math.min(guess, distance / minConv)
       return tPos + tVel * guess, guess
@@ -257,28 +264,6 @@ function PredictTarget(I, guess, tPos, target, wPos, wSpeed, delay, Interval, mi
   end
   -- Fallthrough
   I:Log('Falling through')
-  local guess = distance / minConv
-  return tPos + PredictVelocity(I, target, Interval(guess)) * guess, guess
-end
-
-function PredictTarget(I, guess, tPos, target, wPos, wSpeed, delay, Interval, minConv)
-  local relativePosition = tPos - wPos
-  local distance = Vector3.Magnitude(relativePosition)
-  
-  for i = 0, ConvergenceMaxIterations do
-    local tVel = PredictVelocity(I, target, Interval(guess))
-    predictedDistance = math.sqrt((relativePosition.x + tVel.x*guess)^2
-                                  + (relativePosition.y + tVel.y*guess)^2
-                                  + (relativePosition.z + tVel.z*guess)^2)
-    local new = (predictedDistance / wSpeed) + delay
-    if math.abs(new - guess) < ConvergenceIterationThreshold then
-      return tPos + tVel * guess, guess
-    else
-      local a = math.min(1, wSpeed / Vector3.Magnitude(tVel))
-      guess = (a * new + (1-a) * guess)
-    end
-  end
-  -- Fallthrough
   local guess = distance / minConv
   return tPos + PredictVelocity(I, target, Interval(guess)) * guess, guess
 end
@@ -326,12 +311,12 @@ function AimFireWeapon(I, wi, ti, gameTime, groupFired)
   local w = (ti and I:GetWeaponInfoOnTurretOrSpinner(ti, wi)) or I:GetWeaponInfo(wi)
   if WeaponSystems[w.WeaponSlot] then
     local ws = WeaponSystems[w.WeaponSlot]
-    if (groupFired and (ws.Type == 2 and w.WeaponSlot ~= groupFired)) 
+    if (groupFired and (ws.Type == 2 and w.WeaponSlot ~= groupFired))
        or (w.WeaponType ~= 4 and ws.Stagger and gameTime < ws.NextFire) then
       return
     end
     local tIndex = nil
-    for k, t in ipairs(TargetLists[ws.TargetList].PresentTarget) do
+    for k, t in ipairs(ws.PresentTargets) do
       if not (ws.LimitFire and ws.MissilesPerTarget)
          or Targets[t].NumMissiles + Targets[t].NumFired < ws.MissilesPerTarget then
         tIndex = t
@@ -344,23 +329,27 @@ function AimFireWeapon(I, wi, ti, gameTime, groupFired)
       if ws.InheritedMovement then
         selfPos = selfPos + I:GetVelocityVector() * ws.InheritedMovement
       end
-      local tPos = PredictTarget(I, 0, Targets[tIndex].AimPoints[1], Targets[tIndex], selfPos, ws.Speed,
-                                 ws.LaunchDelay, ws.SecantInterval or DefaultSecantInterval,
-                                 ws.MinimumConvergenceSpeed)
+      local tPos, ttt =
+        PredictTarget(I, 0, Targets[tIndex].AimPoints[1], Targets[tIndex],
+                      selfPos, ws.Speed, ws.LaunchDelay, ws.SecantInterval,
+                      ws.MinimumConvergenceSpeed, w.CurrentDirection,
+                      ws.TurnSpeed)
       local v = Vector3.Normalize(tPos - w.GlobalPosition)
 
       if ti then
-        I:AimWeaponInDirectionOnTurretOrSpinner(ti, wi, v.x, v.y, v.z, w.WeaponSlot)
+        I:AimWeaponInDirectionOnTurretOrSpinner(ti, wi, v.x, v.y, v.z,
+                                                w.WeaponSlot)
       else
         I:AimWeaponInDirection(wi, v.x, v.y, v.z, w.WeaponSlot)
       end
 
       if w.WeaponType ~= 4 then
         local delayed = ws.Stagger and gameTime < ws.NextFire
-        if not delayed and Vector3.Distance(w.GlobalPosition, tPos) < ws.MaximumRange
-           and I:Maths_AngleBetweenVectors(w.CurrentDirection, v) < ws.FiringAngle then
-          local fired = (ti and I:FireWeaponOnTurretOrSpinner(ti, wi, w.WeaponSlot))
-                        or I:FireWeapon(wi, w.WeaponSlot)
+        if not delayed and ttt < ws.LaunchEndurance
+           and Angle(w.CurrentDirection, v) < ws.FiringAngle then
+          local fired =
+            (ti and I:FireWeaponOnTurretOrSpinner(ti, wi, w.WeaponSlot))
+            or I:FireWeapon(wi, w.WeaponSlot)
           if fired then
             if ws.Stagger then
               ws.Fired = ws.Fired + 1
@@ -385,10 +374,12 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
     return
   end
   if not Missiles[mInfo.Id] then
-    Missiles[mInfo.Id] = { Flag = Flag, Group = (groupFired or DefaultMissileGroup) }
+    Missiles[mInfo.Id] = { Flag = Flag,
+         Group = (groupFired or DefaultMissileGroup) }
     local ws = WeaponSystems[Missiles[mInfo.Id].Group]
     if ws.AttackPatterns then
-      Missiles[mInfo.Id].AttackPattern = ws.AttackPatterns[ws.AttackPatternIndex]
+      Missiles[mInfo.Id].AttackPattern =
+  ws.AttackPatterns[ws.AttackPatternIndex]
       ws.AttackPatternIndex = (ws.AttackPatternIndex % #ws.AttackPatterns) + 1
     end
   else
@@ -396,14 +387,14 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
   end
   local m = Missiles[mInfo.Id]
   local ws = WeaponSystems[m.Group]
-  if mInfo.TimeSinceLaunch > ws.Endurance then
+  if mInfo.TimeSinceLaunch > ws.CullTime then
     if ws.DetonateOnCull then I:DetonateLuaControlledMissile(ti,mi) end
   else
     if m.Target == nil or Targets[m.Target] == nil then
       m.TTT = nil
       local best = 99999
       local bestIndex = 1
-      for k, t in ipairs(TargetLists[ws.TargetList].PresentTarget) do
+      for k, t in ipairs(ws.PresentTargets) do
         if not ws.MissilesPerTarget or Targets[t].NumMissiles < ws.MissilesPerTarget then
           bestIndex = t
           break
@@ -430,28 +421,34 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
         m.ResetTime = gameTime + 0.25
       end
 
-      local aimPoint = (m.AimPointIndex and target.AimPoints[m.AimPointIndex]) or target.AimPoints[1]
+      local aimPoint = (m.AimPointIndex and target.AimPoints[m.AimPointIndex])
+                       or target.AimPoints[1]
 
-      if ws.ProxRadius and Vector3.Distance(aimPoint, mInfo.Position) < ws.ProxRadius then
+      if ws.ProxRadius
+         and Vector3.Distance(aimPoint, mInfo.Position) < ws.ProxRadius then
         I:DetonateLuaControlledMissile(ti,mi)
         return
       end
 
       local mSpeed = math.max(Vector3.Magnitude(mInfo.Velocity), ws.Speed)
-      local tPos, ttt = PredictTarget(I, m.TTT or 0, aimPoint, target, mInfo.Position, mSpeed, 0,
-                                      ws.SecantInterval or DefaultSecantInterval,
-                                      ws.MinimumConvergenceSpeed)
+      local tPos, ttt =
+        PredictTarget(I, m.TTT or 0, aimPoint, target, mInfo.Position, mSpeed,
+                      0, ws.SecantInterval or DefaultSecantInterval,
+                      ws.MinimumConvergenceSpeed, mInfo.Velocity, ws.TurnSpeed)
       m.TTT = ttt - 1/40
       if ttt < 1 then m.ResetTime = gameTime end
       local floor = false
-      if Vector3.Distance(mInfo.Position, tPos) > 1.2 * (mInfo.Position.y - tPos.y) + 50  then
+      if Vector3.Distance(mInfo.Position, tPos)
+         > 1.2 * (mInfo.Position.y - tPos.y) + 50  then
         tPos.y = math.max(tPos.y, ws.MinimumCruiseAltitude)
         floor = true
       end
       if m.AttackPattern then
         local tttAdj = m.TTTadj or ttt
         local q = Quaternion.LookRotation(tPos - mInfo.Position, Vector3(0,1,0))
-        local v = m.AttackPattern * math.min(math.max(0, tttAdj - ws.PatternConvergeTime), ws.PatternTimeCap)
+        local v = m.AttackPattern
+                  * math.min(math.max(0, tttAdj - ws.PatternConvergeTime),
+                             ws.PatternTimeCap)
         tPos = tPos + q*v
         if floor then tPos.y = math.max(tPos.y, ws.MinimumCruiseAltitude) end
         m.TTTadj = Vector3.Distance(tPos, mInfo.Position) / mSpeed
@@ -485,7 +482,7 @@ function Update(I)
   -- Guide missiles
   for ti = 0, I:GetLuaTransceiverCount() - 1 do
     for mi = 0, I:GetLuaControlledMissileCount(ti) - 1 do
-      GuideMissile(I, ti, mi, gameTime)
+      GuideMissile(I, ti, mi, gameTime, groupFired)
     end
   end
 end

@@ -50,6 +50,8 @@ These help the target prediction AI.
 + `DetonateOnCull`: Optional, defaults to false. Whether to detonate the missile when its endurance is exceeded (to reduce lag).
 + `Endurance`: The number of seconds the missile has propulsion. For submarines, add the maximum expected time to clear the water.
 + `CullTime` (optional, defaults to `Endurance + 0.5`): The time at which the missile will stop receiving guidance (and detonate, if DetonateOnCull is set).
++ `Direction` (optional, ignored by default): The mount direction for fixed missiles. Allows target selection to account for reduced range when firing off-bore.
++ `TurnSpeed`: The turn rate in degrees/second. Set high if you have no idea.
 
 ### Attack pattern settings (all optional, but required if `AttackPatterns` is defined).
 Attack patterns have missiles spread and then converge to the target.
