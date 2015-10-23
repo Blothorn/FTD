@@ -440,7 +440,8 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
       local floor = false
       if Vector3.Distance(mInfo.Position, tPos)
          > 1.2 * (mInfo.Position.y - tPos.y) + 50  then
-        tPos.y = math.max(tPos.y, ws.MinimumCruiseAltitude)
+        tPos.y = math.min(math.max(tPos.y, ws.MinimumCruiseAltitude),
+			                    ws.MaximumCruiseAltitude)
         floor = true
       end
       if m.AttackPattern then
@@ -450,7 +451,10 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
                   * math.min(math.max(0, tttAdj - ws.PatternConvergeTime),
                              ws.PatternTimeCap)
         tPos = tPos + q*v
-        if floor then tPos.y = math.max(tPos.y, ws.MinimumCruiseAltitude) end
+        if floor then
+          tPos.y = math.min(math.max(tPos.y, ws.MinimumCruiseAltitude),
+			                      ws.MaximumCruiseAltitude)
+        end
         m.TTTadj = Vector3.Distance(tPos, mInfo.Position) / mSpeed
       end
       I:SetLuaControlledMissileAimPoint(ti, mi, tPos.x, tPos.y,tPos.z)
