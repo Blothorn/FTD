@@ -1,5 +1,5 @@
 --[[
-Weapon guidance AI, version 2.0.0.0
+Weapon guidance AI, version 2.0.1.0
 https://github.com/Blothorn/FTD for further documentation and license.
 --]]
 
@@ -55,6 +55,10 @@ function Angle(a, b)
                             / (Vector3.Magnitude(a) * Vector3.Magnitude(b))))
 end
 
+function GroundDistance(a, b)
+  return math.sqrt((a.x - b.x)^2 + (a.z - b.z)^2)
+end
+
 -- Normalize weapon configuration
 function Normalize(I)
   for i = 0, 5 do
@@ -79,7 +83,10 @@ function Normalize(I)
         ws.CullTime = ws.Endurance + 0.5
       end
       if not ws.SecantInterval then
-  ws.SecantInterval = DefaultSecantInterval
+        ws.SecantInterval = DefaultSecantInterval
+      end
+      if not ws.CruiseThreshold then
+        ws.CruiseThreshold = 75
       end
     end
   end
@@ -438,8 +445,8 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
       m.TTT = ttt - 1/40
       if ttt < 1 then m.ResetTime = gameTime end
       local floor = false
-      if Vector3.Distance(mInfo.Position, tPos)
-         > 1.2 * (mInfo.Position.y - tPos.y) + 50  then
+      if GroundDistance(mInfo.Position, tPos)
+         > 0.3 * math.abs(mInfo.Position.y - tPos.y) + ws.CruiseThreshold then
         tPos.y = math.min(math.max(tPos.y, ws.MinimumCruiseAltitude),
 			                    ws.MaximumCruiseAltitude)
         floor = true
