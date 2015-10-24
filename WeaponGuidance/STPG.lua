@@ -1,5 +1,5 @@
 --[[
-Weapon guidance AI, version 2.0.1.0
+Weapon guidance AI, version 2.0.1.1
 https://github.com/Blothorn/FTD for further documentation and license.
 --]]
 
@@ -339,8 +339,8 @@ function AimFireWeapon(I, wi, ti, gameTime, groupFired)
       local tPos, ttt =
         PredictTarget(I, 0, Targets[tIndex].AimPoints[1], Targets[tIndex],
                       selfPos, ws.Speed, ws.LaunchDelay, ws.SecantInterval,
-                      ws.MinimumConvergenceSpeed, w.CurrentDirection,
-                      ws.TurnSpeed)
+                      ws.MinimumConvergenceSpeed, 
+                      w.WeaponType ~= 4 and w.CurrentDirection, ws.TurnSpeed)
       local v = Vector3.Normalize(tPos - w.GlobalPosition)
 
       if ti then
