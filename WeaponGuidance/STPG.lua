@@ -1,5 +1,5 @@
 --[[
-Weapon guidance AI, version 2.0.1.1
+Weapon guidance AI, version 2.0.1.2
 https://github.com/Blothorn/FTD for further documentation and license.
 --]]
 
@@ -320,7 +320,7 @@ function AimFireWeapon(I, wi, ti, gameTime, groupFired)
     local ws = WeaponSystems[w.WeaponSlot]
     if (groupFired and (ws.Type == 2 and w.WeaponSlot ~= groupFired))
        or (w.WeaponType ~= 4 and ws.Stagger and gameTime < ws.NextFire) then
-      return
+      return groupFired
     end
     local tIndex = nil
     for k, t in ipairs(ws.PresentTargets) do
@@ -378,7 +378,7 @@ end
 function GuideMissile(I, ti, mi, gameTime, groupFired)
   local mInfo = I:GetLuaControlledMissileInfo(ti, mi)
   if I:IsLuaControlledMissileAnInterceptor(ti,mi) then
-    return
+    return groupFired
   end
   if not Missiles[mInfo.Id] then
     Missiles[mInfo.Id] = { Flag = Flag,
@@ -386,7 +386,7 @@ function GuideMissile(I, ti, mi, gameTime, groupFired)
     local ws = WeaponSystems[Missiles[mInfo.Id].Group]
     if ws.AttackPatterns then
       Missiles[mInfo.Id].AttackPattern =
-  ws.AttackPatterns[ws.AttackPatternIndex]
+        ws.AttackPatterns[ws.AttackPatternIndex]
       ws.AttackPatternIndex = (ws.AttackPatternIndex % #ws.AttackPatterns) + 1
     end
   else
