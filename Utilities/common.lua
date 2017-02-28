@@ -9,6 +9,18 @@ function Clamp(x, min, max)
   end
 end
 
+-- Returns the normalized projection of a vector onto the horizontal plane.
+function Horizontal(v)
+  local newV = v
+  newV.y = 0
+  return newV.normalized
+end
+
+-- Returns the reciprocal angle in (-180,180].
+function ReciprocalAngle(angle)
+  return ((angle + 360) % 360) - 180
+end
+
 -- PID controller, with integral windup protection.
 -- Interface:
 --   controller = PID:New()
