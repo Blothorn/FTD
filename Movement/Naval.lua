@@ -151,7 +151,6 @@ end
 
 function SetRudder(I, course)
   local rudder = STATE.rudderController:Step(course, 0)
-I:Log(course)
   if rudder < -5 then
     I:RequestControl(0, 0, -rudder / 45)
   elseif rudder > 5 then
