@@ -30,8 +30,16 @@ kMinBroadsideAngle = 45
 kMaxBroadsideAngle = 135
 
 -- PID settings for rudder control.
-kRudderPidSettings = {kP = 0.5, kI = 0.05, kD = 2, integralMin = -100,
-                      integralMax = 100, outMin = -45, outMax = 45}
+kRudderPidSettings = {kP = 0.01, kI = 0.001, kD = 0.04, integralMin = -100,
+                      integralMax = 100, outMin = -1, outMax = 1}
+                      
+-- The local coordinates of rudder spinblocks. If nil, this uses the default
+-- steering commands.
+kRudderSpinnerPositions = nil
+
+-- Maximum deflection for spinblock rudders.
+kMaxRudderDeflection = 45                      
+
 
 -------------------------------------------------------------------------------
 -- Common utilities library (pasted)
@@ -122,6 +130,24 @@ STATE.rudderController = PID:New(kRudderPidSettings.kP or 0,
                                  kRudderPidSettings.outMax or 45)
 STATE.courseController = PID:New(0.1, 0, 0.05, 0, 0, kMinBroadsideAngle - 90,
                                  kMaxBroadsideAngle - 90)
+STATE.rudderSpinnerIndices = {}
+STATE.lastSpinnerCount = 0
+
+function IdentifyRudderSpinners(I)
+  local indices = {}
+  local count = I:GetSpinnerCount()
+  for i=0, count - 1 do
+    local position = I:GetSpinnerInfo(i).LocalPosition
+    for _, p in ipairs(kRudderSpinnerPositions) do
+      if (position.x == p.x and position.y == p.y and position.z == p.z) then
+        table.insert(indices, i)
+      end
+    end
+  end
+  I:Log(string.format('controlling %d rudders', #indices))
+  STATE.lastSpinnerCount = count
+  return indices
+end
 
 -- Returns a course toward/away from the target if it is within minimum or
 -- outside maximum range, and null otherwise.
@@ -151,10 +177,18 @@ end
 
 function SetRudder(I, course)
   local rudder = STATE.rudderController:Step(course, 0)
-  if rudder < -5 then
-    I:RequestControl(0, 0, -rudder / 45)
-  elseif rudder > 5 then
-    I:RequestControl(0, 1, rudder / 45)
+  if kMaxRudderDeflection then
+    -- Use spinblock rudder
+    for _, rudderIndex in ipairs(STATE.rudderSpinnerIndices) do
+      I:SetSpinnerRotationAngle(rudderIndex, rudder * kMaxRudderDeflection)
+    end
+  else
+    -- Use stock rudder
+    if rudder < -0.1 then
+      I:RequestControl(0, 0, -rudder)
+    elseif rudder > 0.1 then
+      I:RequestControl(0, 1, rudder)
+    end
   end
 end
 
@@ -163,6 +197,11 @@ function Update(I)
   -- mainframe or target.
   if I:GetNumberOfMainframes() <= 0 or I:GetNumberOfTargets(0) <= 0 then
     return
+  end
+  
+  if (kRudderSpinnerPositions and
+      I:GetSpinnerCount() ~= STATE.lastSpinnerCount) then
+    STATE.rudderSpinnerIndices = IdentifyRudderSpinners(I);
   end
   
   local now = I:GetTime()
