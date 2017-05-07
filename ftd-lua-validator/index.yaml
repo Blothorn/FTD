@@ -1,0 +1,5 @@
+indexes:
+- kind: Script
+  ancestor: yes
+  properties:
+  - name: idLine
