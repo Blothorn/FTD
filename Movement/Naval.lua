@@ -40,6 +40,19 @@ kRudderSpinnerPositions = nil
 -- Maximum deflection for spinblock rudders.
 kMaxRudderDeflection = 45
 
+----- Terrain avoidance settings -----
+-- The minimum depth to seek when avoiding terrain. This is polled sparsely, so
+-- leave a generous margin to allow for bumps.
+kMinDepth = 15
+
+-- How far ahead to look for terrain collisions. This should be at least the
+-- vessel's turning radius.
+kTerrainLookaheadDistance = 750
+
+-------------------------------------------------------------------------------
+-- Default constants. Only adjust these if you know what you are doing.
+kTerrainLookaheadIncrement = 50
+kTerrainAvoidanceScanIncrement = 30
 
 -------------------------------------------------------------------------------
 -- Common utilities library (pasted)
@@ -173,6 +186,59 @@ function BroadsideCourse(I, targetPosition)
   return desiredAngleOffBow - targetPosition.Azimuth
 end
 
+-- Returns the distance to the first point at which the terrain height is above
+-- MinDepth in 'direction' from 'position', or nil if none is found within
+--  kTerrainLookaheadDistance. 'direction' should be a normalized Vector3 in
+-- the horizontal plane.
+function SafeDistanceInDirection(I, position, direction)
+  for distance = kTerrainLookaheadIncrement,
+                 kTerrainLookaheadDistance,
+                 kTerrainLookaheadIncrement do
+    local samplePosition = position + direction * distance
+    if I:GetTerrainAltitudeForPosition(samplePosition) > -kMinDepth then
+      return distance
+    end
+  end
+end
+
+-- Returns the closest course to 'course' thought to satisfy terrain avoidance
+-- constraints.
+function SafeCourse(I, course)
+  local forward = Quaternion.Euler(0, course, 0)
+                  * Horizontal(I:GetConstructForwardVector())
+  local position = I:GetConstructPosition()
+  if (not SafeDistanceInDirection(I, position, forward)) then
+    return course
+  end
+  
+  local bestCourse = course
+  local bestDistance = -1
+  for angle = kTerrainAvoidanceScanIncrement, 179,
+              kTerrainAvoidanceScanIncrement do
+    local leftDirection = Quaternion.Euler(0, -angle, 0) * forward
+    local leftDistance = SafeDistanceInDirection(I, position, leftDirection)
+    if (not leftDistance) then
+      return -angle
+    end
+    if (leftDistance > bestDistance) then
+      bestCourse = course - angle
+      bestDistance = leftDistance
+    end
+    
+    local rightDirection = Quaternion.Euler(0, angle, 0) * forward
+    local rightDistance = SafeDistanceInDirection(I, position, rightDirection)
+    if (not rightDistance) then
+      return angle
+    end
+    if (rightDistance > bestDistance) then
+      bestCourse = course + angle
+      bestDistance = rightDistance
+    end 
+  end
+  return bestCourse
+end
+
+
 function SetRudder(I, course)
   local rudder = STATE.rudderController:Step(course, 0)
   if kMaxRudderDeflection then
@@ -191,8 +257,8 @@ function SetRudder(I, course)
 end
 
 function Update(I)
-  -- TODO: Refine this when we have course sources that do not require a
-  -- mainframe or target.
+  -- Desired course, relative to present course. (For some reason the builtins
+  -- prefer relative to absolute azimuths.)
   local course = nil
 
   if I:GetNumberOfMainframes() <= 0 or I:GetNumberOfTargets(0) <= 0 then
@@ -206,8 +272,6 @@ function Update(I)
 
   local now = I:GetTime()
   local targetInfo = I:GetTargetInfo(0, 0)
-  -- Desired course, relative to present course. (For some reason the builtins
-  -- prefer relative to absolute azimuths.)
 
   if now > STATE.nextConditionCheckTime then
     local targetPosition = I:GetTargetPositionInfo(0, 0)
@@ -236,7 +300,7 @@ function Update(I)
   end
 
   I:RequestControl(0, 8, 1)
-  SetRudder(I, course)
+  SetRudder(I, SafeCourse(I, course))
 
   STATE.lastCourse = course
   STATE.lastTargetId = targetInfo.Id
