@@ -210,7 +210,7 @@ function SafeCourse(I, course)
   if (not SafeDistanceInDirection(I, position, direction)) then
     return course
   end
-  
+
   local bestCourse = course
   local bestDistance = -1
   for angle = kTerrainAvoidanceScanIncrement, 179,
@@ -224,7 +224,7 @@ function SafeCourse(I, course)
       bestCourse = course - angle
       bestDistance = leftDistance
     end
-    
+
     local rightDirection = Quaternion.Euler(0, angle, 0) * direction
     local rightDistance = SafeDistanceInDirection(I, position, rightDirection)
     if (not rightDistance) then
@@ -233,8 +233,9 @@ function SafeCourse(I, course)
     if (rightDistance > bestDistance) then
       bestCourse = course + angle
       bestDistance = rightDistance
-    end 
+    end
   end
+
   return bestCourse
 end
 
