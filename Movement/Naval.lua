@@ -170,8 +170,6 @@ function BroadsideCourse(I, targetPosition)
   -- The desired angle at which we want to hold the target from the bow in
   -- (-180,180]
   local desiredAngleOffBow = side * (desiredAngleOffBeam + 90)
-  I:Log(string.format("%d, %d, %d, %d", targetPosition.Azimuth, desiredAngleOffBeam,
-  desiredAngleOffBow, desiredAngleOffBow - targetPosition.Azimuth))
   return desiredAngleOffBow - targetPosition.Azimuth
 end
 
