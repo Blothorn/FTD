@@ -241,7 +241,7 @@ end
 
 function SetRudder(I, course)
   local rudder = STATE.rudderController:Step(course, 0)
-  if kMaxRudderDeflection then
+  if kRudderSpinnerPositions then
     -- Use spinblock rudder
     for _, rudderIndex in ipairs(STATE.rudderSpinnerIndices) do
       I:SetSpinnerRotationAngle(rudderIndex, rudder * kMaxRudderDeflection)
