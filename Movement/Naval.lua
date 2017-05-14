@@ -193,8 +193,10 @@ end
 function Update(I)
   -- TODO: Refine this when we have course sources that do not require a
   -- mainframe or target.
+  local course = nil
+
   if I:GetNumberOfMainframes() <= 0 or I:GetNumberOfTargets(0) <= 0 then
-    return
+    course = 0
   end
 
   if (kRudderSpinnerPositions and
@@ -206,7 +208,6 @@ function Update(I)
   local targetInfo = I:GetTargetInfo(0, 0)
   -- Desired course, relative to present course. (For some reason the builtins
   -- prefer relative to absolute azimuths.)
-  local course = nil
 
   if now > STATE.nextConditionCheckTime then
     local targetPosition = I:GetTargetPositionInfo(0, 0)
