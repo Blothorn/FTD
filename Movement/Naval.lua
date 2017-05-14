@@ -5,7 +5,7 @@
 
 -- User settings.
 
--- Course is updated only every kCourseUpdatePeriod seconds, except when 
+-- Course is updated only every kCourseUpdatePeriod seconds, except when
 -- crossing max/min broadside range or approaching shallows; those conditions
 -- are checked every kConditionCheckPeriod seconds.
 kCourseUpdatePeriod = 30  -- Seconds.
@@ -32,13 +32,13 @@ kMaxBroadsideAngle = 135
 -- PID settings for rudder control.
 kRudderPidSettings = {kP = 0.01, kI = 0.001, kD = 0.04, integralMin = -100,
                       integralMax = 100, outMin = -1, outMax = 1}
-                      
+
 -- The local coordinates of rudder spinblocks. If nil, this uses the default
 -- steering commands.
 kRudderSpinnerPositions = nil
 
 -- Maximum deflection for spinblock rudders.
-kMaxRudderDeflection = 45                      
+kMaxRudderDeflection = 45
 
 
 -------------------------------------------------------------------------------
@@ -77,9 +77,9 @@ PID.Step_ = function(self, setpoint, state)
   local p = self.kP_ * error
   local i = self.kI_ * (self.integral_ + error)
   local d = self.kD_ * (error - self.lastError_)
-  
+
   output, binding = Clamp(p + i + d, self.outMin_, self.outMax_)
-  
+
   -- Do not add to the integral if the constraint is binding to avoid windup
   -- after setpoint changes.
   -- TODO: Investigate the risk of loss of convergence when the integral
@@ -88,9 +88,9 @@ PID.Step_ = function(self, setpoint, state)
     self.integral_ = Clamp(self.integral_ + error, self.integralMin_,
                           self.integralMax_)
   end
-  
+
   self.lastError_ = error
-  
+
   return output
 end
 
@@ -193,17 +193,17 @@ function SetRudder(I, course)
 end
 
 function Update(I)
-  -- TODO: Refine this when we have course sources that do not require a 
+  -- TODO: Refine this when we have course sources that do not require a
   -- mainframe or target.
   if I:GetNumberOfMainframes() <= 0 or I:GetNumberOfTargets(0) <= 0 then
     return
   end
-  
+
   if (kRudderSpinnerPositions and
       I:GetSpinnerCount() ~= STATE.lastSpinnerCount) then
     STATE.rudderSpinnerIndices = IdentifyRudderSpinners(I);
   end
-  
+
   local now = I:GetTime()
   local targetInfo = I:GetTargetInfo(0, 0)
   -- Desired course, relative to present course. (For some reason the builtins
@@ -235,7 +235,7 @@ function Update(I)
                                            STATE.lastCourseTargetPosition.z)
     course = -lastCourseTarget.Azimuth + STATE.lastCourseOffset
   end
-  
+
   I:RequestControl(0, 8, 1)
   SetRudder(I, course)
 
