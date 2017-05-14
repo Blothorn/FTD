@@ -1,5 +1,5 @@
 --[[
-  Naval AI, version 0.0.0
+  Naval AI, version 0.1.0
   https://github.com/Blothorn/FTD for further documentation and license.
 --]]
 
