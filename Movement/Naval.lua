@@ -204,10 +204,10 @@ end
 -- Returns the closest course to 'course' thought to satisfy terrain avoidance
 -- constraints.
 function SafeCourse(I, course)
-  local forward = Quaternion.Euler(0, course, 0)
+  local direction = Quaternion.Euler(0, course, 0)
                   * Horizontal(I:GetConstructForwardVector())
   local position = I:GetConstructPosition()
-  if (not SafeDistanceInDirection(I, position, forward)) then
+  if (not SafeDistanceInDirection(I, position, direction)) then
     return course
   end
   
@@ -215,20 +215,19 @@ function SafeCourse(I, course)
   local bestDistance = -1
   for angle = kTerrainAvoidanceScanIncrement, 179,
               kTerrainAvoidanceScanIncrement do
-    local leftDirection = Quaternion.Euler(0, -angle, 0) * forward
+    local leftDirection = Quaternion.Euler(0, -angle, 0) * direction
     local leftDistance = SafeDistanceInDirection(I, position, leftDirection)
     if (not leftDistance) then
-      return -angle
     end
     if (leftDistance > bestDistance) then
       bestCourse = course - angle
       bestDistance = leftDistance
     end
     
-    local rightDirection = Quaternion.Euler(0, angle, 0) * forward
+    local rightDirection = Quaternion.Euler(0, angle, 0) * direction
     local rightDistance = SafeDistanceInDirection(I, position, rightDirection)
     if (not rightDistance) then
-      return angle
+      return course + angle
     end
     if (rightDistance > bestDistance) then
       bestCourse = course + angle
