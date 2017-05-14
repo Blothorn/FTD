@@ -218,6 +218,7 @@ function SafeCourse(I, course)
     local leftDirection = Quaternion.Euler(0, -angle, 0) * direction
     local leftDistance = SafeDistanceInDirection(I, position, leftDirection)
     if (not leftDistance) then
+      return course - angle
     end
     if (leftDistance > bestDistance) then
       bestCourse = course - angle
