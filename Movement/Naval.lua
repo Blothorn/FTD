@@ -1,5 +1,5 @@
 --[[
-  Naval AI, version 0.1.0
+  Naval AI, version 0.1.1
   https://github.com/Blothorn/FTD for further documentation and license.
 --]]
 
@@ -31,7 +31,7 @@ kMaxBroadsideAngle = 135
 
 -- PID settings for rudder control.
 kRudderPidSettings = {kP = 0.01, kI = 0.001, kD = 0.04, integralMin = -100,
-                      integralMax = 100, outMin = -1, outMax = 1}
+                      integralMax = 100}
 
 -- The local coordinates of rudder spinblocks. If nil, this uses the default
 -- steering commands.
@@ -139,8 +139,7 @@ STATE.rudderController = PID:New(kRudderPidSettings.kP or 0,
                                  kRudderPidSettings.kD or 0,
                                  kRudderPidSettings.integralMin or -math.huge,
                                  kRudderPidSettings.integralMax or math.huge,
-                                 kRudderPidSettings.outMin or -45,
-                                 kRudderPidSettings.outMax or 45)
+                                 -1, 1)
 STATE.courseController = PID:New(0.1, 0, 0.05, 0, 0, kMinBroadsideAngle - 90,
                                  kMaxBroadsideAngle - 90)
 STATE.rudderSpinnerIndices = {}
