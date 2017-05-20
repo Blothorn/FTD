@@ -163,7 +163,7 @@ end
 
 -- Returns a course toward/away from the target if it is within minimum or
 -- outside maximum range, and null otherwise.
-function CheckExtremeRange(targetPosition)
+function ExtremeRangeCourse(targetPosition)
   if targetPosition.Range > kMaxBroadsideRange then
     return -targetPosition.Azimuth
   elseif targetPosition.Range < kMinBroadsideRange then
@@ -183,6 +183,35 @@ function BroadsideCourse(I, targetPosition)
   -- (-180,180]
   local desiredAngleOffBow = side * (desiredAngleOffBeam + 90)
   return desiredAngleOffBow - targetPosition.Azimuth
+end
+
+function BroadsideController(I, now, targetInfo, targetPosition)
+  local course = nil
+  if now > STATE.nextConditionCheckTime then
+    STATE.nextConditionCheckTime = now + kConditionCheckPeriod
+    course = ExtremeRangeCourse(targetPosition)
+    if not course then
+      if (now > STATE.nextCourseChangeTime or
+          targetInfo.Id ~= STATE.lastTargetId) then
+        STATE.nextCourseChangeTime = now + kCourseUpdatePeriod
+        course = BroadsideCourse(I, targetPosition)
+      else
+        course = LastCourse(I)
+      end
+    end
+    if course then
+      course = SafeCourse(I, course)
+      STATE.lastCourseOffset = course
+      STATE.lastCourseTargetPosition =
+          I:GetConstructPosition() + I:GetConstructForwardVector() * 1000000
+    else
+      I:LogToHud("Error: course not set")
+      course = 0
+    end
+  else
+    course = LastCourse(I)
+  end
+  return course
 end
 
 -- Returns the distance to the first point at which the terrain height is above
@@ -256,52 +285,34 @@ function SetRudder(I, course)
   end
 end
 
+function LastCourse(I)
+  local lastCourseTarget =
+      I:GetTargetPositionInfoForPosition(0,
+                                         STATE.lastCourseTargetPosition.x,
+                                         STATE.lastCourseTargetPosition.y,
+                                         STATE.lastCourseTargetPosition.z)
+  return -lastCourseTarget.Azimuth + STATE.lastCourseOffset
+end
+
 function Update(I)
   -- Desired course, relative to present course. (For some reason the builtins
   -- prefer relative to absolute azimuths.)
   local course = nil
 
   if I:GetNumberOfMainframes() <= 0 or I:GetNumberOfTargets(0) <= 0 then
-    course = 0
+    course = SafeCourse(I, 0)
+  else
+    local now = I:GetTime()
+    local targetInfo = I:GetTargetInfo(0, 0)
+    local targetPosition = I:GetTargetPositionInfo(0, 0)
+    course = BroadsideController(I, now, targetInfo, targetPosition)
+    STATE.lastTargetId = targetInfo.Id
   end
 
   if (kRudderSpinnerPositions and
       I:GetSpinnerCount() ~= STATE.lastSpinnerCount) then
     STATE.rudderSpinnerIndices = IdentifyRudderSpinners(I);
   end
-
-  local now = I:GetTime()
-  local targetInfo = I:GetTargetInfo(0, 0)
-
-  if now > STATE.nextConditionCheckTime then
-    local targetPosition = I:GetTargetPositionInfo(0, 0)
-    STATE.nextConditionCheckTime = now + kConditionCheckPeriod
-    course = CheckExtremeRange(targetPosition)
-    if not course and
-       (now > STATE.nextCourseChangeTime or
-        targetInfo.Id ~= STATE.lastTargetId) then
-      STATE.nextCourseChangeTime = now + kCourseUpdatePeriod
-      course = BroadsideCourse(I, targetPosition)
-    end
-    if course then
-      STATE.lastCourseOffset = course
-      STATE.lastCourseTargetPosition =
-          I:GetConstructPosition() + I:GetConstructForwardVector() * 1000000
-    end
-  end
-
-  if not course then
-    local lastCourseTarget =
-        I:GetTargetPositionInfoForPosition(0,
-                                           STATE.lastCourseTargetPosition.x,
-                                           STATE.lastCourseTargetPosition.y,
-                                           STATE.lastCourseTargetPosition.z)
-    course = -lastCourseTarget.Azimuth + STATE.lastCourseOffset
-  end
-
   I:RequestControl(0, 8, 1)
-  SetRudder(I, SafeCourse(I, course))
-
-  STATE.lastCourse = course
-  STATE.lastTargetId = targetInfo.Id
+  SetRudder(I, course)
 end
